@@ -4,16 +4,25 @@ import csv
 import platform
 import shutil
 import subprocess
-import sys
+import threading
 from pathlib import Path
-from tkinter import BOTH, DISABLED, END, NORMAL, StringVar, Tk, filedialog, messagebox, ttk
+from tkinter import DISABLED, END, NORMAL, StringVar, Tk, filedialog, messagebox, ttk
 
 from cretop_data_reader.scrapling_adapter import check_scrapling
+from cretop_data_reader.table_capture import (
+    CDP_URL,
+    CaptureResult,
+    CapturedTable,
+    capture_current_cretop_table_sync,
+    write_table_csv,
+)
 
 
 CRETOP_URL = "https://www.cretop.com/"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PROFILE_DIR = PROJECT_ROOT / ".chrome-profile"
+DEFAULT_CAPTURE_OUTPUT = PROJECT_ROOT / "output" / "cretop_condition_search.csv"
+REMOTE_DEBUGGING_PORT = "9222"
 
 
 def find_chrome() -> str | None:
@@ -87,20 +96,24 @@ class CretopDataReaderApp:
     def __init__(self, root: Tk) -> None:
         self.root = root
         self.root.title("Cretop Data Reader")
-        self.root.geometry("920x620")
-        self.root.minsize(760, 520)
+        self.root.geometry("1080x720")
+        self.root.minsize(900, 620)
 
         self.excel_path: Path | None = None
+        self.capture_output_path = DEFAULT_CAPTURE_OUTPUT
         self.login_status = StringVar(value="로그인 전")
         self.file_status = StringVar(value="엑셀 파일 미선택")
         self.progress_status = StringVar(value="대기 중")
         self.scrapling_status = StringVar(value="확인 전")
+        self.capture_status = StringVar(value="대기 중")
+        self.capture_output_status = StringVar(value=str(self.capture_output_path))
+        self.capture_max_pages = StringVar(value="30")
 
         self._build()
 
     def _build(self) -> None:
         self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(2, weight=1)
+        self.root.rowconfigure(1, weight=1)
 
         top = ttk.Frame(self.root, padding=16)
         top.grid(row=0, column=0, sticky="ew")
@@ -113,8 +126,38 @@ class CretopDataReaderApp:
             row=1, column=0, columnspan=3, sticky="w", pady=(4, 0)
         )
 
-        actions = ttk.Frame(self.root, padding=(16, 0, 16, 12))
-        actions.grid(row=1, column=0, sticky="ew")
+        notebook = ttk.Notebook(self.root)
+        notebook.grid(row=1, column=0, sticky="nsew", padx=16)
+
+        session_tab = ttk.Frame(notebook, padding=12)
+        capture_tab = ttk.Frame(notebook, padding=12)
+        excel_tab = ttk.Frame(notebook, padding=12)
+        notebook.add(session_tab, text="세션")
+        notebook.add(capture_tab, text="조건검색 복사")
+        notebook.add(excel_tab, text="엑셀 처리")
+
+        self._build_session_tab(session_tab)
+        self._build_capture_tab(capture_tab)
+        self._build_excel_tab(excel_tab)
+
+        log_frame = ttk.LabelFrame(self.root, text="로그", padding=10)
+        log_frame.grid(row=2, column=0, sticky="ew", padx=16, pady=16)
+        log_frame.columnconfigure(0, weight=1)
+
+        self.log = ttk.Treeview(log_frame, columns=("message",), show="headings", height=6)
+        self.log.heading("message", text="메시지")
+        self.log.column("message", width=900, stretch=True)
+        self.log.grid(row=0, column=0, sticky="ew")
+
+        self._set_excel_start_enabled()
+        self.add_log("Chrome을 열고 직접 로그인한 뒤 '로그인 완료'를 누르세요.")
+        self.check_scrapling_status(show_popup=False)
+
+    def _build_session_tab(self, parent: ttk.Frame) -> None:
+        parent.columnconfigure(0, weight=1)
+
+        actions = ttk.Frame(parent)
+        actions.grid(row=0, column=0, sticky="ew")
         actions.columnconfigure(3, weight=1)
 
         ttk.Button(actions, text="Chrome 열기", command=self.open_chrome).grid(
@@ -123,59 +166,107 @@ class CretopDataReaderApp:
         ttk.Button(actions, text="로그인 완료", command=self.mark_login_done).grid(
             row=0, column=1, padx=(0, 8), sticky="w"
         )
-        ttk.Button(actions, text="엑셀 선택", command=self.pick_excel).grid(
+        ttk.Button(actions, text="Scrapling 확인", command=self.check_scrapling_status).grid(
             row=0, column=2, padx=(0, 8), sticky="w"
         )
-        ttk.Button(actions, text="Scrapling 확인", command=self.check_scrapling_status).grid(
-            row=0, column=3, padx=(0, 8), sticky="w"
+
+        status = ttk.LabelFrame(parent, text="상태", padding=10)
+        status.grid(row=1, column=0, sticky="ew", pady=(12, 0))
+        status.columnconfigure(1, weight=1)
+
+        ttk.Label(status, text="로그인 상태").grid(row=0, column=0, sticky="w", padx=(0, 10))
+        ttk.Label(status, textvariable=self.login_status).grid(row=0, column=1, sticky="w")
+        ttk.Label(status, text="진행 상태").grid(row=1, column=0, sticky="w", padx=(0, 10))
+        ttk.Label(status, textvariable=self.progress_status).grid(row=1, column=1, sticky="w")
+        ttk.Label(status, text="Scrapling").grid(row=2, column=0, sticky="w", padx=(0, 10))
+        ttk.Label(status, textvariable=self.scrapling_status).grid(row=2, column=1, sticky="w")
+        ttk.Label(status, text="브라우저 연결").grid(row=3, column=0, sticky="w", padx=(0, 10))
+        ttk.Label(status, text=CDP_URL).grid(row=3, column=1, sticky="w")
+
+    def _build_capture_tab(self, parent: ttk.Frame) -> None:
+        parent.columnconfigure(0, weight=1)
+        parent.rowconfigure(2, weight=1)
+
+        controls = ttk.LabelFrame(parent, text="현재 조건검색 결과", padding=10)
+        controls.grid(row=0, column=0, sticky="ew")
+        controls.columnconfigure(1, weight=1)
+
+        ttk.Label(controls, text="최대 페이지").grid(row=0, column=0, sticky="w", padx=(0, 8))
+        ttk.Spinbox(
+            controls,
+            from_=1,
+            to=500,
+            textvariable=self.capture_max_pages,
+            width=8,
+        ).grid(row=0, column=1, sticky="w")
+        self.capture_button = ttk.Button(
+            controls,
+            text="화면 테이블 복사",
+            command=self.start_table_capture,
+        )
+        self.capture_button.grid(row=0, column=2, sticky="e")
+
+        ttk.Label(controls, text="저장 파일").grid(row=1, column=0, sticky="w", padx=(0, 8), pady=(8, 0))
+        ttk.Label(controls, textvariable=self.capture_output_status).grid(
+            row=1, column=1, sticky="ew", pady=(8, 0)
+        )
+        ttk.Button(controls, text="변경", command=self.pick_capture_output).grid(
+            row=1, column=2, sticky="e", pady=(8, 0)
+        )
+
+        status = ttk.Frame(parent)
+        status.grid(row=1, column=0, sticky="ew", pady=(12, 8))
+        status.columnconfigure(1, weight=1)
+        ttk.Label(status, text="복사 상태").grid(row=0, column=0, sticky="w", padx=(0, 8))
+        ttk.Label(status, textvariable=self.capture_status).grid(row=0, column=1, sticky="w")
+
+        preview_frame = ttk.LabelFrame(parent, text="복사 결과 미리보기", padding=10)
+        preview_frame.grid(row=2, column=0, sticky="nsew")
+        preview_frame.columnconfigure(0, weight=1)
+        preview_frame.rowconfigure(0, weight=1)
+
+        self.capture_preview = ttk.Treeview(preview_frame, show="headings", height=14)
+        self.capture_preview.grid(row=0, column=0, sticky="nsew")
+        self._attach_tree_scrollbars(preview_frame, self.capture_preview)
+
+    def _build_excel_tab(self, parent: ttk.Frame) -> None:
+        parent.columnconfigure(0, weight=1)
+        parent.rowconfigure(2, weight=1)
+
+        actions = ttk.Frame(parent)
+        actions.grid(row=0, column=0, sticky="ew")
+        actions.columnconfigure(1, weight=1)
+
+        ttk.Button(actions, text="엑셀 선택", command=self.pick_excel).grid(
+            row=0, column=0, padx=(0, 8), sticky="w"
         )
         self.start_button = ttk.Button(actions, text="처리 시작", command=self.start_processing)
-        self.start_button.grid(row=0, column=4, sticky="e")
+        self.start_button.grid(row=0, column=2, sticky="e")
 
-        status = ttk.Frame(self.root, padding=(16, 0, 16, 12))
-        status.grid(row=2, column=0, sticky="nsew")
-        status.columnconfigure(0, weight=1)
-        status.rowconfigure(1, weight=1)
-
-        status_grid = ttk.Frame(status)
-        status_grid.grid(row=0, column=0, sticky="ew", pady=(0, 12))
+        status_grid = ttk.Frame(parent)
+        status_grid.grid(row=1, column=0, sticky="ew", pady=(12, 8))
         status_grid.columnconfigure(1, weight=1)
 
-        ttk.Label(status_grid, text="로그인 상태").grid(row=0, column=0, sticky="w", padx=(0, 10))
-        ttk.Label(status_grid, textvariable=self.login_status).grid(row=0, column=1, sticky="w")
-        ttk.Label(status_grid, text="파일 상태").grid(row=1, column=0, sticky="w", padx=(0, 10))
-        ttk.Label(status_grid, textvariable=self.file_status).grid(row=1, column=1, sticky="w")
-        ttk.Label(status_grid, text="진행 상태").grid(row=2, column=0, sticky="w", padx=(0, 10))
-        ttk.Label(status_grid, textvariable=self.progress_status).grid(row=2, column=1, sticky="w")
-        ttk.Label(status_grid, text="Scrapling").grid(row=3, column=0, sticky="w", padx=(0, 10))
-        ttk.Label(status_grid, textvariable=self.scrapling_status).grid(row=3, column=1, sticky="w")
+        ttk.Label(status_grid, text="파일 상태").grid(row=0, column=0, sticky="w", padx=(0, 10))
+        ttk.Label(status_grid, textvariable=self.file_status).grid(row=0, column=1, sticky="w")
+        ttk.Label(status_grid, text="진행 상태").grid(row=1, column=0, sticky="w", padx=(0, 10))
+        ttk.Label(status_grid, textvariable=self.progress_status).grid(row=1, column=1, sticky="w")
 
-        preview_frame = ttk.LabelFrame(status, text="엑셀 미리보기", padding=10)
-        preview_frame.grid(row=1, column=0, sticky="nsew")
+        preview_frame = ttk.LabelFrame(parent, text="엑셀 미리보기", padding=10)
+        preview_frame.grid(row=2, column=0, sticky="nsew")
         preview_frame.columnconfigure(0, weight=1)
         preview_frame.rowconfigure(0, weight=1)
 
         self.preview = ttk.Treeview(preview_frame, show="headings", height=12)
         self.preview.grid(row=0, column=0, sticky="nsew")
+        self._attach_tree_scrollbars(preview_frame, self.preview)
 
-        y_scroll = ttk.Scrollbar(preview_frame, orient="vertical", command=self.preview.yview)
+    def _attach_tree_scrollbars(self, parent: ttk.Frame, tree: ttk.Treeview) -> None:
+        y_scroll = ttk.Scrollbar(parent, orient="vertical", command=tree.yview)
         y_scroll.grid(row=0, column=1, sticky="ns")
-        x_scroll = ttk.Scrollbar(preview_frame, orient="horizontal", command=self.preview.xview)
+        x_scroll = ttk.Scrollbar(parent, orient="horizontal", command=tree.xview)
         x_scroll.grid(row=1, column=0, sticky="ew")
-        self.preview.configure(yscrollcommand=y_scroll.set, xscrollcommand=x_scroll.set)
-
-        log_frame = ttk.LabelFrame(self.root, text="로그", padding=10)
-        log_frame.grid(row=3, column=0, sticky="ew", padx=16, pady=(0, 16))
-        log_frame.columnconfigure(0, weight=1)
-
-        self.log = ttk.Treeview(log_frame, columns=("message",), show="headings", height=6)
-        self.log.heading("message", text="메시지")
-        self.log.column("message", width=800, stretch=True)
-        self.log.grid(row=0, column=0, sticky="ew")
-
-        self._set_start_enabled()
-        self.add_log("Chrome을 열고 직접 로그인한 뒤 '로그인 완료'를 누르세요.")
-        self.check_scrapling_status(show_popup=False)
+        tree.configure(yscrollcommand=y_scroll.set, xscrollcommand=x_scroll.set)
 
     def open_chrome(self) -> None:
         chrome = find_chrome()
@@ -188,6 +279,7 @@ class CretopDataReaderApp:
             [
                 chrome,
                 f"--user-data-dir={PROFILE_DIR}",
+                f"--remote-debugging-port={REMOTE_DEBUGGING_PORT}",
                 "--new-window",
                 CRETOP_URL,
             ],
@@ -195,13 +287,13 @@ class CretopDataReaderApp:
             stderr=subprocess.DEVNULL,
         )
         self.progress_status.set("Chrome 실행됨")
-        self.add_log("Chrome을 열었습니다. Cretop에서 직접 로그인하세요.")
+        self.add_log("Chrome을 열었습니다. Cretop에서 직접 로그인한 뒤 조건검색을 실행하세요.")
 
     def mark_login_done(self) -> None:
         self.login_status.set("로그인 완료")
         self.progress_status.set("엑셀 파일 선택 대기")
         self.add_log("사용자가 로그인 완료를 확인했습니다.")
-        self._set_start_enabled()
+        self._set_excel_start_enabled()
 
     def check_scrapling_status(self, show_popup: bool = True) -> None:
         status = check_scrapling()
@@ -239,21 +331,96 @@ class CretopDataReaderApp:
         self.progress_status.set("엑셀 파일 로드됨")
         self.render_preview(headers, rows)
         self.add_log(f"검색 대상 파일을 불러왔습니다: {path.name}")
-        self._set_start_enabled()
+        self._set_excel_start_enabled()
 
     def render_preview(self, headers: list[str], rows: list[list[str]]) -> None:
-        self.preview.delete(*self.preview.get_children())
+        self.render_table(self.preview, headers, rows)
+
+    def render_table(self, tree: ttk.Treeview, headers: list[str], rows: list[list[str]]) -> None:
+        tree.delete(*tree.get_children())
         column_ids = [f"col_{index}" for index in range(len(headers))]
-        self.preview["columns"] = column_ids
+        tree["columns"] = column_ids
 
         for index, column_id in enumerate(column_ids):
             header = headers[index] or f"Column {index + 1}"
-            self.preview.heading(column_id, text=header)
-            self.preview.column(column_id, width=140, minwidth=80, stretch=True)
+            tree.heading(column_id, text=header)
+            tree.column(column_id, width=140, minwidth=80, stretch=True)
 
         for row in rows:
             values = row + [""] * (len(headers) - len(row))
-            self.preview.insert("", END, values=values[: len(headers)])
+            tree.insert("", END, values=values[: len(headers)])
+
+    def pick_capture_output(self) -> None:
+        selected = filedialog.asksaveasfilename(
+            title="조건검색 복사 결과 저장",
+            defaultextension=".csv",
+            filetypes=[
+                ("CSV", "*.csv"),
+                ("All files", "*.*"),
+            ],
+            initialfile=self.capture_output_path.name,
+        )
+        if not selected:
+            return
+
+        self.capture_output_path = Path(selected)
+        self.capture_output_status.set(str(self.capture_output_path))
+
+    def start_table_capture(self) -> None:
+        if self.login_status.get() != "로그인 완료":
+            messagebox.showwarning("로그인 필요", "Cretop에 로그인한 뒤 '로그인 완료'를 누르세요.")
+            return
+
+        try:
+            max_pages = int(self.capture_max_pages.get())
+        except ValueError:
+            messagebox.showwarning("페이지 수 확인", "최대 페이지는 숫자로 입력하세요.")
+            return
+        if max_pages < 1:
+            messagebox.showwarning("페이지 수 확인", "최대 페이지는 1 이상이어야 합니다.")
+            return
+
+        self.capture_button.configure(state=DISABLED)
+        self.capture_status.set("복사 중")
+        self.add_log("현재 Cretop 화면의 조건검색 결과 테이블 복사를 시작합니다.")
+        output_path = self.capture_output_path
+
+        thread = threading.Thread(
+            target=self._run_table_capture,
+            args=(max_pages, output_path),
+            daemon=True,
+        )
+        thread.start()
+
+    def _run_table_capture(self, max_pages: int, output_path: Path) -> None:
+        try:
+            result = capture_current_cretop_table_sync(max_pages=max_pages)
+            if not result.rows:
+                raise RuntimeError("현재 화면에서 복사할 테이블 데이터를 찾지 못했습니다.")
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            write_table_csv(
+                output_path,
+                CapturedTable(result.headers, result.rows),
+            )
+        except Exception as exc:
+            self.root.after(0, self._finish_table_capture_error, str(exc))
+            return
+
+        self.root.after(0, self._finish_table_capture_success, result, output_path)
+
+    def _finish_table_capture_success(self, result: CaptureResult, output_path: Path) -> None:
+        self.render_table(self.capture_preview, result.headers, result.rows[:100])
+        self.capture_status.set(
+            f"{result.pages}페이지, {len(result.rows)}행 저장 완료"
+        )
+        self.capture_button.configure(state=NORMAL)
+        self.add_log(f"조건검색 결과를 저장했습니다: {output_path}")
+
+    def _finish_table_capture_error(self, message: str) -> None:
+        self.capture_status.set("복사 실패")
+        self.capture_button.configure(state=NORMAL)
+        self.add_log(f"조건검색 결과 복사 실패: {message}")
+        messagebox.showerror("복사 실패", message)
 
     def start_processing(self) -> None:
         if self.login_status.get() != "로그인 완료":
@@ -282,7 +449,7 @@ class CretopDataReaderApp:
         if children:
             self.log.see(children[-1])
 
-    def _set_start_enabled(self) -> None:
+    def _set_excel_start_enabled(self) -> None:
         if self.login_status.get() == "로그인 완료" and self.excel_path is not None:
             self.start_button.configure(state=NORMAL)
         else:

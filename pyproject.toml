@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cretop-data-reader"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
     "openpyxl>=3.1.5",
     "scrapling>=0.4.8,<0.5",
@@ -15,3 +15,7 @@ cretop-data-reader = "cretop_data_reader.app:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

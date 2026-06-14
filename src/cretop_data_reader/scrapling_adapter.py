@@ -15,7 +15,7 @@ def check_scrapling() -> ScraplingStatus:
     except ImportError:
         return ScraplingStatus(
             installed=False,
-            message="Scrapling이 설치되어 있지 않습니다. `pip install -r requirements.txt`를 실행하세요.",
+            message="Scrapling이 설치되어 있지 않습니다. `python -m pip install -e .`를 실행하세요.",
         )
 
     version = getattr(scrapling, "__version__", "unknown")

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import csv
+import platform
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -15,11 +17,24 @@ PROFILE_DIR = PROJECT_ROOT / ".chrome-profile"
 
 
 def find_chrome() -> str | None:
-    candidates = [
-        Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe"),
-        Path(r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"),
-        Path.home() / r"AppData\Local\Google\Chrome\Application\chrome.exe",
-    ]
+    system = platform.system()
+    if system == "Darwin":
+        candidates = [
+            Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+            Path.home() / "Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        ]
+    elif system == "Windows":
+        candidates = [
+            Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe"),
+            Path(r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"),
+            Path.home() / r"AppData\Local\Google\Chrome\Application\chrome.exe",
+        ]
+    else:
+        for command in ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser"):
+            chrome = shutil.which(command)
+            if chrome is not None:
+                return chrome
+        candidates = []
 
     for candidate in candidates:
         if candidate.exists():
@@ -49,7 +64,7 @@ def read_excel_preview(path: Path, limit: int = 20) -> tuple[list[str], list[lis
         except ImportError as exc:
             raise RuntimeError(
                 "엑셀(.xlsx) 파일을 읽으려면 openpyxl이 필요합니다. "
-                "터미널에서 `pip install -r requirements.txt`를 실행하세요."
+                "터미널에서 `python -m pip install -e .`를 실행하세요."
             ) from exc
 
         workbook = load_workbook(path, read_only=True, data_only=True)

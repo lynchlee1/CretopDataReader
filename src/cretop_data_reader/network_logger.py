@@ -61,6 +61,29 @@ def daily_log_path(log_dir: Path, now: datetime | None = None) -> Path:
     return log_dir / f"network-{current.strftime('%Y-%m-%d')}.jsonl"
 
 
+def body_extension(content_type: str) -> str:
+    lowered = content_type.lower()
+    if "html" in lowered:
+        return ".html"
+    if "json" in lowered:
+        return ".json"
+    if "xml" in lowered:
+        return ".xml"
+    return ".txt"
+
+
+def should_save_body(content_type: str, resource_type: str) -> bool:
+    lowered = content_type.lower()
+    if resource_type in {"image", "font", "stylesheet", "script"}:
+        return False
+    return (
+        resource_type in {"document", "xhr", "fetch"}
+        or "text/" in lowered
+        or "json" in lowered
+        or "xml" in lowered
+    )
+
+
 class NetworkLogger:
     def __init__(self, log_dir: Path, cdp_url: str = CDP_URL) -> None:
         self.log_dir = log_dir
@@ -159,10 +182,10 @@ class NetworkLogger:
         }
 
         content_type = headers.get("content-type", "")
-        if "text/html" in content_type.lower():
-            body_path = await self.save_html_body(request_id, response)
+        if should_save_body(content_type, request.resource_type):
+            body_path = await self.save_response_body(request_id, response, content_type)
             if body_path is not None:
-                event["htmlBodyPath"] = str(body_path)
+                event["bodyPath"] = str(body_path)
 
         self.write_event(event)
 
@@ -191,13 +214,13 @@ class NetworkLogger:
             }
         )
 
-    async def save_html_body(self, request_id: str, response: Any) -> Path | None:
+    async def save_response_body(self, request_id: str, response: Any, content_type: str) -> Path | None:
         try:
             body = await response.text()
         except Exception:
             return None
 
-        body_path = self.body_dir / f"{request_id}.html"
+        body_path = self.body_dir / f"{request_id}{body_extension(content_type)}"
         body_path.write_text(body, encoding="utf-8", errors="replace")
         return body_path
 

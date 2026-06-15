@@ -35,6 +35,7 @@ downloads/
 
 # Test and tool caches
 node_modules/
+dist/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/

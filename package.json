@@ -6,9 +6,66 @@
   "main": "electron/main.js",
   "scripts": {
     "desktop": "electron .",
-    "desktop:dev": "electron . --dev"
+    "desktop:dev": "electron . --dev",
+    "dist": "electron-builder --win",
+    "dist:dir": "electron-builder --dir"
+  },
+  "build": {
+    "appId": "com.cretopdatareader.desktop",
+    "productName": "Cretop Data Reader",
+    "directories": {
+      "output": "dist"
+    },
+    "asar": true,
+    "files": [
+      "electron/**/*",
+      "package.json",
+      "!**/AGENTS.md",
+      "!**/README.md",
+      "!**/docs/**",
+      "!**/tests/**",
+      "!**/.pytest_cache/**",
+      "!**/.mypy_cache/**",
+      "!**/.ruff_cache/**",
+      "!**/.chrome-profile/**",
+      "!**/network-logs/**",
+      "!**/output/**",
+      "!**/logs/**",
+      "!**/data/**",
+      "!**/input/**",
+      "!**/exports/**",
+      "!**/downloads/**",
+      "!**/*.xlsx",
+      "!**/*.xlsm",
+      "!**/*.xls",
+      "!**/*.csv",
+      "!**/ms-playwright/**",
+      "!**/.local-browsers/**",
+      "!**/chromium*/**",
+      "!**/chrome-*/**"
+    ],
+    "extraResources": [
+      {
+        "from": "src/cretop_data_reader",
+        "to": "src/cretop_data_reader",
+        "filter": [
+          "**/*.py"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    }
   },
   "devDependencies": {
-    "electron": "^42.4.0"
+    "electron": "^42.4.0",
+    "electron-builder": "^26.15.3"
   }
 }

@@ -5,10 +5,12 @@ const os = require("os");
 const path = require("path");
 
 const projectRoot = path.resolve(__dirname, "..");
-const srcRoot = path.join(projectRoot, "src");
-const profileDir = path.join(projectRoot, ".chrome-profile");
-const defaultCaptureOutput = path.join(projectRoot, "output", "cretop_condition_search.csv");
-const networkLogDir = path.join(projectRoot, "network-logs");
+const runtimeRoot = app.getPath("userData");
+const pythonRoot = app.isPackaged ? process.resourcesPath : projectRoot;
+const srcRoot = path.join(pythonRoot, "src");
+const profileDir = path.join(runtimeRoot, "chrome-profile");
+const defaultCaptureOutput = path.join(runtimeRoot, "output", "cretop_condition_search.csv");
+const networkLogDir = path.join(runtimeRoot, "network-logs");
 const remoteDebuggingPort = "9222";
 const cretopUrl = "https://www.cretop.com/";
 
@@ -63,7 +65,7 @@ function pythonCommand() {
 function runPython(code, args = []) {
   return new Promise((resolve, reject) => {
     const child = spawn(pythonCommand(), ["-c", code, ...args], {
-      cwd: projectRoot,
+      cwd: pythonRoot,
       env: {
         ...process.env,
         PYTHONPATH: process.env.PYTHONPATH ? `${srcRoot}${path.delimiter}${process.env.PYTHONPATH}` : srcRoot,
@@ -145,7 +147,7 @@ function startNetworkLogger() {
       `http://127.0.0.1:${remoteDebuggingPort}`,
     ],
     {
-      cwd: projectRoot,
+      cwd: pythonRoot,
       env: pythonEnv(),
       stdio: "ignore",
     },

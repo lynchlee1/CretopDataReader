@@ -7,9 +7,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from cretop_data_reader.network_logger import (
+    body_extension,
     daily_log_path,
     purge_old_logs,
     sanitize_headers,
+    should_save_body,
 )
 
 
@@ -50,6 +52,17 @@ class NetworkLoggerTests(unittest.TestCase):
         now = datetime(2026, 6, 15, 23, 0, tzinfo=timezone.utc)
 
         self.assertEqual(Path("logs") / "network-2026-06-15.jsonl", daily_log_path(Path("logs"), now))
+
+    def test_saves_textual_xhr_bodies(self) -> None:
+        self.assertTrue(should_save_body("application/json", "xhr"))
+        self.assertTrue(should_save_body("text/html; charset=utf-8", "document"))
+        self.assertFalse(should_save_body("image/svg+xml", "image"))
+
+    def test_body_extension_matches_content_type(self) -> None:
+        self.assertEqual(".html", body_extension("text/html"))
+        self.assertEqual(".json", body_extension("application/json"))
+        self.assertEqual(".xml", body_extension("application/xml"))
+        self.assertEqual(".txt", body_extension(""))
 
 
 if __name__ == "__main__":

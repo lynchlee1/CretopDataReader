@@ -32,8 +32,7 @@ body {
 }
 
 button,
-input,
-textarea {
+input {
   font: inherit;
 }
 
@@ -152,8 +151,7 @@ button:disabled {
 
 .nav-button,
 button,
-input,
-textarea {
+input {
   -webkit-app-region: no-drag;
 }
 
@@ -322,8 +320,7 @@ label {
   gap: 8px;
 }
 
-input,
-textarea {
+input {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -337,14 +334,7 @@ input {
   padding: 0 12px;
 }
 
-textarea {
-  min-height: 132px;
-  padding: 12px;
-  resize: vertical;
-}
-
-input:focus,
-textarea:focus {
+input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
@@ -355,20 +345,10 @@ textarea:focus {
   gap: 10px;
 }
 
-.inline-status {
-  margin: 14px 0 0;
-  color: var(--muted);
-  font-weight: 650;
-}
-
 .detail-list {
   display: grid;
   gap: 12px;
   margin: 20px 0 0;
-}
-
-.manual-input-field {
-  margin-top: 20px;
 }
 
 .detail-list div {

@@ -100,7 +100,7 @@ def write_table_csv(path: Path, table: CapturedTable) -> None:
 
 
 async def capture_current_cretop_table(
-    max_pages: int,
+    max_pages: int | None = None,
     cdp_url: str = CDP_URL,
 ) -> CaptureResult:
     try:
@@ -111,7 +111,7 @@ async def capture_current_cretop_table(
             "`python -m pip install -e .`를 실행하세요."
         ) from exc
 
-    if max_pages < 1:
+    if max_pages is not None and max_pages < 1:
         raise ValueError("max_pages must be at least 1")
 
     async with async_playwright() as playwright:
@@ -130,7 +130,8 @@ async def capture_current_cretop_table(
             if await _has_search_result_list(page):
                 await _go_to_first_result_page(page)
 
-            for page_number in range(1, max_pages + 1):
+            page_number = 1
+            while max_pages is None or page_number <= max_pages:
                 await page.wait_for_load_state("domcontentloaded")
                 await _raise_if_expired(page)
                 table = await _extract_search_result_table(page, page_number)
@@ -143,16 +144,19 @@ async def capture_current_cretop_table(
                     seen_tables.add(signature)
                     captured.append(table)
 
-                if page_number == max_pages:
+                if max_pages is not None and page_number == max_pages:
                     break
                 if await _has_search_result_list(page):
                     clicked = await _click_result_page_number(page, page_number + 1)
+                    if not clicked:
+                        clicked = await _click_next_page(page)
                 else:
                     clicked = await _click_next_page(page)
                 if not clicked:
                     break
                 await page.wait_for_load_state("domcontentloaded")
                 await page.wait_for_timeout(800)
+                page_number += 1
 
             combined = combine_tables(captured)
             return CaptureResult(
@@ -164,7 +168,7 @@ async def capture_current_cretop_table(
             await browser.close()
 
 
-def capture_current_cretop_table_sync(max_pages: int, cdp_url: str = CDP_URL) -> CaptureResult:
+def capture_current_cretop_table_sync(max_pages: int | None = None, cdp_url: str = CDP_URL) -> CaptureResult:
     return asyncio.run(capture_current_cretop_table(max_pages=max_pages, cdp_url=cdp_url))
 
 
@@ -302,7 +306,10 @@ async def _click_result_page_number(page: Any, page_number: int) -> bool:
 
 
 async def _click_like_user(page: Any, locator: Any) -> None:
-    await locator.wait_for(state="visible", timeout=5000)
+    if hasattr(locator, "wait_for"):
+        await locator.wait_for(state="visible", timeout=5000)
+    elif hasattr(locator, "wait_for_element_state"):
+        await locator.wait_for_element_state("visible", timeout=5000)
     await locator.scroll_into_view_if_needed()
     await page.wait_for_timeout(120)
 
@@ -361,7 +368,7 @@ async def _wait_for_result_page(
 
 
 async def _click_next_page(page: Any) -> bool:
-    return await page.evaluate(
+    handle = await page.evaluate_handle(
         """
         () => {
           const labels = ['다음', 'Next', 'next', '>', '›', '»'];
@@ -385,11 +392,20 @@ async def _click_next_page(page: Any) -> bool:
             const rel = (element.getAttribute('rel') || '').trim();
             const value = `${text} ${title} ${aria} ${rel}`.trim();
             if (labels.some((label) => value === label || value.includes(label)) || rel === 'next') {
-              element.click();
-              return true;
+              return element;
             }
           }
-          return false;
+          return null;
         }
         """
     )
+    element = handle.as_element()
+    if element is None:
+        await handle.dispose()
+        return False
+    try:
+        await _click_like_user(page, element)
+        await _raise_if_expired(page)
+        return True
+    finally:
+        await handle.dispose()

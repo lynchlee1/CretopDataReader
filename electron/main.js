@@ -369,7 +369,7 @@ import json
 import sys
 from pathlib import Path
 from cretop_data_reader.table_capture import CapturedTable, capture_current_cretop_table_sync, write_table_csv
-max_pages = int(sys.argv[1])
+max_pages = int(sys.argv[1]) if sys.argv[1] else None
 output_path = Path(sys.argv[2])
 result = capture_current_cretop_table_sync(max_pages=max_pages)
 if not result.rows:
@@ -384,6 +384,6 @@ print(json.dumps({
     "outputPath": str(output_path),
 }, ensure_ascii=False))
 `,
-    [String(payload.maxPages), payload.outputPath],
+    [payload.maxPages == null ? "" : String(payload.maxPages), payload.outputPath],
   ),
 );

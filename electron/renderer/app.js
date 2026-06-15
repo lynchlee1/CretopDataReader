@@ -1,6 +1,5 @@
 const state = {
   loginDone: false,
-  inputRows: [],
   captureOutput: "",
   pendingCapture: null,
   captureRunning: false,
@@ -29,24 +28,11 @@ function addLog(message) {
   logs.scrollTop = logs.scrollHeight;
 }
 
-function setProgress(message) {
-  setText("#sessionProgress", message);
-}
-
-function setInputProgress(message) {
-  setText("#inputProgress", message);
-}
-
 function setLogin(message, done = false) {
   state.loginDone = done;
   setText("#loginText", message);
   $("#loginPill").classList.toggle("connected", done);
   $("#loginPill").classList.toggle("disconnected", !done);
-  updateStartEnabled();
-}
-
-function updateStartEnabled() {
-  $("#startProcessing").disabled = !(state.loginDone && state.inputRows.length);
 }
 
 function showView(name) {
@@ -93,33 +79,6 @@ function renderTable(targetSelector, headers, rows) {
   target.replaceChildren(table);
 }
 
-function parseManualInput(value) {
-  return value
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => line.split(/\t|,/).map((cell) => cell.trim()));
-}
-
-function refreshManualInput() {
-  const rows = parseManualInput($("#manualInput").value);
-  state.inputRows = rows;
-
-  if (!rows.length) {
-    $("#manualPreview").className = "table-empty";
-    $("#manualPreview").textContent = "검색 대상을 한 줄에 하나씩 입력하세요.";
-    setText("#manualCount", "0행");
-    setInputProgress("입력 대기");
-    updateStartEnabled();
-    return;
-  }
-
-  renderTable("#manualPreview", ["검색 대상"], rows);
-  setText("#manualCount", `${rows.length}행`);
-  setInputProgress("입력됨");
-  updateStartEnabled();
-}
-
 async function runAction(action) {
   try {
     return await action();
@@ -142,26 +101,21 @@ async function runCapture(payload, resumed = false) {
 
   state.captureRunning = true;
   $("#captureTable").disabled = true;
-  setText("#captureStatus", resumed ? "재개 중" : "복사 중");
   addLog(resumed ? "보류된 조건검색 결과 복사를 재개합니다." : "현재 Cretop 화면의 조건검색 결과 테이블 복사를 시작합니다.");
 
   try {
     const result = await window.cretop.captureTable(payload);
     state.pendingCapture = null;
     renderTable("#capturePreview", result.headers, result.rows);
-    setText("#captureStatus", `${result.pages}페이지, ${result.rowCount}행 저장 완료`);
     setText("#captureCount", `${result.rowCount}행`);
     addLog(`조건검색 결과를 저장했습니다: ${result.outputPath}`);
   } catch (error) {
     if (isExpiredError(error)) {
       state.pendingCapture = payload;
       setLogin("재확인 필요", false);
-      setProgress("페이지 만료: Chrome에서 새로고침 후 로그인 완료를 누르세요.");
-      setText("#captureStatus", "페이지 만료로 일시 중단");
       addLog("Cretop 페이지가 만료되어 작업을 일시 중단했습니다. Chrome에서 새로고침한 뒤 앱의 '로그인 완료'를 누르면 다시 실행합니다.");
       window.alert("Cretop 페이지가 만료되었습니다. Chrome에서 새로고침한 뒤 앱으로 돌아와 '로그인 완료'를 누르세요.");
     } else {
-      setText("#captureStatus", "복사 실패");
       addLog(error.message);
       window.alert(error.message);
     }
@@ -186,13 +140,11 @@ async function init() {
   $("#openChrome").addEventListener("click", async () => {
     const result = await runAction(() => window.cretop.openChrome());
     if (!result) return;
-    setProgress("Chrome 실행됨");
     addLog(result.message);
   });
 
   $("#loginDone").addEventListener("click", () => {
     setLogin("연결", true);
-    setProgress("로그인 완료");
     addLog("사용자가 로그인 완료를 확인했습니다.");
     if (state.pendingCapture && !state.captureRunning) {
       runCapture(state.pendingCapture, true);
@@ -203,7 +155,6 @@ async function init() {
     const result = await runAction(() => window.cretop.closeAppChrome());
     if (!result) return;
     setLogin("미연결", false);
-    setProgress("실행된 Chrome 종료됨");
     addLog(result.message);
   });
 
@@ -214,7 +165,6 @@ async function init() {
     const result = await runAction(() => window.cretop.closeAllChrome());
     if (!result) return;
     setLogin("미연결", false);
-    setProgress("전체 Chrome 종료됨");
     addLog(result.message);
   });
 
@@ -232,8 +182,9 @@ async function init() {
       return;
     }
 
-    const maxPages = Number($("#maxPages").value);
-    if (!Number.isInteger(maxPages) || maxPages < 1) {
+    const maxPagesValue = $("#maxPages").value.trim();
+    const maxPages = maxPagesValue === "" ? null : Number(maxPagesValue);
+    if (maxPages !== null && (!Number.isInteger(maxPages) || maxPages < 1)) {
       window.alert("최대 페이지는 1 이상의 숫자로 입력하세요.");
       return;
     }
@@ -244,20 +195,11 @@ async function init() {
     });
   });
 
-  $("#manualInput").addEventListener("input", refreshManualInput);
-
-  $("#startProcessing").addEventListener("click", () => {
-    setInputProgress("구현 대기");
-    addLog("Scrapling 기반 검색 처리는 아직 구현되지 않았습니다. 중복 후보 처리 규칙을 먼저 확정해야 합니다.");
-    window.alert("입력 형식, 출력 항목, 중복 후보 선택 기준을 확정한 뒤 구현하세요.");
-  });
-
   $("#clearLog").addEventListener("click", () => {
     $("#logs").replaceChildren();
   });
 
   addLog("Chrome을 열고 직접 로그인한 뒤 '로그인 완료'를 누르세요.");
-  refreshManualInput();
 }
 
 init();

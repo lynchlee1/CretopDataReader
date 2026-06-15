@@ -20,7 +20,6 @@
         <nav class="nav">
           <button class="nav-button active" data-view="session">세션 연결</button>
           <button class="nav-button" data-view="capture">조건검색 복사</button>
-          <button class="nav-button" data-view="input">직접 입력</button>
         </nav>
 
         <div id="appVersion" class="app-version"></div>
@@ -48,7 +47,6 @@
               <button id="closeAppChrome" class="danger">실행된 Chrome 종료</button>
               <button id="closeAllChrome" class="danger">전체 Chrome 종료</button>
             </div>
-            <p id="sessionProgress" class="inline-status">대기 중</p>
           </div>
         </section>
 
@@ -65,7 +63,7 @@
             <div class="form-grid">
               <label>
                 <span>최대 페이지</span>
-                <input id="maxPages" type="number" min="1" max="500" value="30" />
+                <input id="maxPages" type="number" min="1" placeholder="비우면 끝까지" />
               </label>
               <label class="file-field">
                 <span>저장 파일</span>
@@ -75,7 +73,6 @@
                 </div>
               </label>
             </div>
-            <p id="captureStatus" class="inline-status">대기 중</p>
           </div>
 
           <div class="panel table-panel">
@@ -84,33 +81,6 @@
               <span id="captureCount" class="subtle">0행</span>
             </div>
             <div id="capturePreview" class="table-empty">아직 복사된 테이블이 없습니다.</div>
-          </div>
-        </section>
-
-        <section id="input" class="view">
-          <div class="panel">
-            <div class="panel-heading">
-              <div>
-                <p class="eyebrow">Manual Input</p>
-                <h2>검색 대상 직접 입력</h2>
-              </div>
-              <div class="panel-actions">
-                <button id="startProcessing" class="secondary" disabled>처리 시작</button>
-              </div>
-            </div>
-            <label class="manual-input-field">
-              <span>검색 대상</span>
-              <textarea id="manualInput" rows="6" placeholder="기업명 또는 법인번호를 한 줄에 하나씩 입력"></textarea>
-            </label>
-            <p id="inputProgress" class="inline-status">입력 대기</p>
-          </div>
-
-          <div class="panel table-panel">
-            <div class="panel-heading compact">
-              <h2>입력 목록</h2>
-              <span id="manualCount" class="subtle">0행</span>
-            </div>
-            <div id="manualPreview" class="table-empty">검색 대상을 한 줄에 하나씩 입력하세요.</div>
           </div>
         </section>
 

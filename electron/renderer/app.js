@@ -2,6 +2,8 @@ const state = {
   loginDone: false,
   inputRows: [],
   captureOutput: "",
+  pendingCapture: null,
+  captureRunning: false,
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -128,10 +130,54 @@ async function runAction(action) {
   }
 }
 
+function isExpiredError(error) {
+  return /만료|8004|-8002|expired/i.test(error?.message || "");
+}
+
+async function runCapture(payload, resumed = false) {
+  if (!state.loginDone) {
+    window.alert("Cretop에 로그인한 뒤 '로그인 완료'를 누르세요.");
+    return;
+  }
+
+  state.captureRunning = true;
+  $("#captureTable").disabled = true;
+  setText("#captureStatus", resumed ? "재개 중" : "복사 중");
+  addLog(resumed ? "보류된 조건검색 결과 복사를 재개합니다." : "현재 Cretop 화면의 조건검색 결과 테이블 복사를 시작합니다.");
+
+  try {
+    const result = await window.cretop.captureTable(payload);
+    state.pendingCapture = null;
+    renderTable("#capturePreview", result.headers, result.rows);
+    setText("#captureStatus", `${result.pages}페이지, ${result.rowCount}행 저장 완료`);
+    setText("#captureCount", `${result.rowCount}행`);
+    addLog(`조건검색 결과를 저장했습니다: ${result.outputPath}`);
+  } catch (error) {
+    if (isExpiredError(error)) {
+      state.pendingCapture = payload;
+      setLogin("재확인 필요", false);
+      setProgress("페이지 만료: Chrome에서 새로고침 후 로그인 완료를 누르세요.");
+      setText("#captureStatus", "페이지 만료로 일시 중단");
+      addLog("Cretop 페이지가 만료되어 작업을 일시 중단했습니다. Chrome에서 새로고침한 뒤 앱의 '로그인 완료'를 누르면 다시 실행합니다.");
+      window.alert("Cretop 페이지가 만료되었습니다. Chrome에서 새로고침한 뒤 앱으로 돌아와 '로그인 완료'를 누르세요.");
+    } else {
+      setText("#captureStatus", "복사 실패");
+      addLog(error.message);
+      window.alert(error.message);
+    }
+  } finally {
+    state.captureRunning = false;
+    $("#captureTable").disabled = false;
+  }
+}
+
 async function init() {
   const defaults = await window.cretop.getDefaults();
   state.captureOutput = defaults.defaultCaptureOutput;
   $("#captureOutput").value = defaults.defaultCaptureOutput;
+  if (defaults.appVersion) {
+    setText("#appVersion", `v${defaults.appVersion}`);
+  }
 
   $$(".nav-button").forEach((button) => {
     button.addEventListener("click", () => showView(button.dataset.view));
@@ -148,6 +194,9 @@ async function init() {
     setLogin("연결", true);
     setProgress("로그인 완료");
     addLog("사용자가 로그인 완료를 확인했습니다.");
+    if (state.pendingCapture && !state.captureRunning) {
+      runCapture(state.pendingCapture, true);
+    }
   });
 
   $("#closeAppChrome").addEventListener("click", async () => {
@@ -189,24 +238,10 @@ async function init() {
       return;
     }
 
-    $("#captureTable").disabled = true;
-    setText("#captureStatus", "복사 중");
-    addLog("현재 Cretop 화면의 조건검색 결과 테이블 복사를 시작합니다.");
-    const result = await runAction(() =>
-      window.cretop.captureTable({
-        maxPages,
-        outputPath: state.captureOutput,
-      }),
-    );
-    $("#captureTable").disabled = false;
-    if (!result) {
-      setText("#captureStatus", "복사 실패");
-      return;
-    }
-    renderTable("#capturePreview", result.headers, result.rows);
-    setText("#captureStatus", `${result.pages}페이지, ${result.rowCount}행 저장 완료`);
-    setText("#captureCount", `${result.rowCount}행`);
-    addLog(`조건검색 결과를 저장했습니다: ${result.outputPath}`);
+    await runCapture({
+      maxPages,
+      outputPath: state.captureOutput,
+    });
   });
 
   $("#manualInput").addEventListener("input", refreshManualInput);

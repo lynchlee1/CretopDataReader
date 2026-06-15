@@ -17,6 +17,18 @@ const cretopUrl = "https://www.cretop.com/";
 let mainWindow;
 let networkLoggerProcess = null;
 
+function appVersion() {
+  const pyprojectPath = path.join(pythonRoot, "pyproject.toml");
+  try {
+    const pyproject = fs.readFileSync(pyprojectPath, "utf8");
+    const projectSection = pyproject.match(/(?:^|\n)\[project\]\s*([\s\S]*?)(?=\n\[|$)/);
+    const versionMatch = projectSection?.[1].match(/^version\s*=\s*"([^"]+)"/m);
+    return versionMatch?.[1] || null;
+  } catch (_error) {
+    return null;
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1220,
@@ -43,6 +55,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   purgeOldNetworkLogs();
+  startNetworkLogger();
   createWindow();
 });
 
@@ -136,6 +149,8 @@ function startNetworkLogger() {
   if (networkLoggerProcess && !networkLoggerProcess.killed) return;
 
   fs.mkdirSync(networkLogDir, { recursive: true });
+  const stdout = fs.openSync(path.join(networkLogDir, "network-logger.stdout.log"), "a");
+  const stderr = fs.openSync(path.join(networkLogDir, "network-logger.stderr.log"), "a");
   networkLoggerProcess = spawn(
     pythonCommand(),
     [
@@ -149,7 +164,7 @@ function startNetworkLogger() {
     {
       cwd: pythonRoot,
       env: pythonEnv(),
-      stdio: "ignore",
+      stdio: ["ignore", stdout, stderr],
     },
   );
   networkLoggerProcess.on("error", () => {
@@ -291,6 +306,7 @@ ipcMain.handle("app:get-defaults", () => ({
   defaultCaptureOutput,
   cdpUrl: `http://127.0.0.1:${remoteDebuggingPort}`,
   networkLogDir,
+  appVersion: appVersion(),
 }));
 
 ipcMain.handle("app:open-chrome", async () => {

@@ -95,11 +95,12 @@ class NetworkLogger:
 
     def prepare(self) -> None:
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        self.body_dir.mkdir(parents=True, exist_ok=True)
         purge_old_logs(self.log_dir)
+        self.body_dir.mkdir(parents=True, exist_ok=True)
 
     def write_event(self, event: dict[str, Any]) -> None:
         event.setdefault("timestamp", iso_now())
+        self.log_file = daily_log_path(self.log_dir)
         with self.log_file.open("a", encoding="utf-8") as file:
             file.write(json.dumps(event, ensure_ascii=False, sort_keys=True))
             file.write("\n")
@@ -115,22 +116,34 @@ class NetworkLogger:
 
         self.prepare()
         async with async_playwright() as playwright:
-            browser = await self._connect_with_retry(playwright)
-            self.write_event({"type": "logger_started", "cdpUrl": self.cdp_url})
-            for context in browser.contexts:
-                self.attach_context(context)
-            browser.on("context", self.attach_context)
-            await asyncio.Event().wait()
+            while True:
+                browser = await self._connect_when_available(playwright)
+                self.seen_pages.clear()
+                disconnected = asyncio.get_running_loop().create_future()
+                browser.on("disconnected", lambda: finish_future(disconnected))
+                self.write_event({"type": "logger_connected", "cdpUrl": self.cdp_url})
+                for context in browser.contexts:
+                    self.attach_context(context)
+                browser.on("context", self.attach_context)
+                await disconnected
+                self.write_event({"type": "logger_disconnected", "cdpUrl": self.cdp_url})
 
-    async def _connect_with_retry(self, playwright: Any) -> Any:
-        last_error: Exception | None = None
-        for _ in range(60):
+    async def _connect_when_available(self, playwright: Any) -> Any:
+        attempt = 0
+        while True:
+            attempt += 1
             try:
                 return await playwright.chromium.connect_over_cdp(self.cdp_url)
             except Exception as exc:
-                last_error = exc
+                if attempt == 1 or attempt % 30 == 0:
+                    self.write_event(
+                        {
+                            "type": "logger_waiting_for_cdp",
+                            "cdpUrl": self.cdp_url,
+                            "message": str(exc),
+                        }
+                    )
                 await asyncio.sleep(0.5)
-        raise RuntimeError("Chrome CDP에 연결하지 못해 네트워크 로그를 시작하지 못했습니다.") from last_error
 
     def attach_context(self, context: Any) -> None:
         context.on("page", self.attach_page)
@@ -220,9 +233,21 @@ class NetworkLogger:
         except Exception:
             return None
 
+        self.body_dir.mkdir(parents=True, exist_ok=True)
         body_path = self.body_dir / f"{request_id}{body_extension(content_type)}"
-        body_path.write_text(body, encoding="utf-8", errors="replace")
-        return body_path
+        try:
+            body_path.write_text(body, encoding="utf-8", errors="replace")
+            return body_path
+        except OSError as exc:
+            self.write_event(
+                {
+                    "type": "body_save_failed",
+                    "requestId": request_id,
+                    "path": str(body_path),
+                    "message": str(exc),
+                }
+            )
+            return None
 
 
 def request_hash(request: Any) -> str:
@@ -235,6 +260,11 @@ def request_hash(request: Any) -> str:
         ]
     )
     return hashlib.sha256(seed.encode("utf-8")).hexdigest()[:16]
+
+
+def finish_future(future: asyncio.Future[None]) -> None:
+    if not future.done():
+        future.set_result(None)
 
 
 async def main_async() -> None:

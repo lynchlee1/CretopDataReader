@@ -46,6 +46,10 @@
     ],
     "extraResources": [
       {
+        "from": "pyproject.toml",
+        "to": "pyproject.toml"
+      },
+      {
         "from": "src/cretop_data_reader",
         "to": "src/cretop_data_reader",
         "filter": [

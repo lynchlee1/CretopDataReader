@@ -60,6 +60,7 @@ button:disabled {
   padding: 28px 18px;
   background: var(--sidebar);
   color: #e5e7eb;
+  -webkit-app-region: drag;
 }
 
 .brand {
@@ -94,6 +95,13 @@ button:disabled {
 .nav {
   display: grid;
   gap: 8px;
+}
+
+.app-version {
+  margin-top: auto;
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .nav-button {
@@ -139,6 +147,14 @@ button:disabled {
   justify-content: space-between;
   min-height: 96px;
   padding: 22px 24px;
+  -webkit-app-region: drag;
+}
+
+.nav-button,
+button,
+input,
+textarea {
+  -webkit-app-region: no-drag;
 }
 
 .eyebrow {

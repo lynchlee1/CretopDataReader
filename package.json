@@ -1,9 +1,13 @@
 {
   "name": "cretop-data-reader-desktop",
-  "version": "1.1.0",
+  "version": "1.4.1",
   "private": true,
   "description": "Modern Electron desktop UI for Cretop Data Reader",
   "main": "electron/main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lynchlee1/CretopDataReader.git"
+  },
   "scripts": {
     "desktop": "electron .",
     "desktop:dev": "electron . --dev",
@@ -16,6 +20,14 @@
     "directories": {
       "output": "dist"
     },
+    "artifactName": "Cretop-Data-Reader-Setup-${version}.${ext}",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "lynchlee1",
+        "repo": "CretopDataReader"
+      }
+    ],
     "asar": true,
     "files": [
       "electron/**/*",
@@ -71,5 +83,8 @@
   "devDependencies": {
     "electron": "^42.4.0",
     "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   }
 }

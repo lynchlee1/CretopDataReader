@@ -20,6 +20,7 @@
         <nav class="nav">
           <button class="nav-button active" data-view="session">세션 연결</button>
           <button class="nav-button" data-view="capture">조건검색 복사</button>
+          <button class="nav-button" data-view="updates">업데이트 확인</button>
         </nav>
 
         <div id="appVersion" class="app-version"></div>
@@ -100,6 +101,38 @@
                 </section>
               </div>
             </details>
+          </div>
+        </section>
+
+        <section id="updates" class="view">
+          <div class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Updater</p>
+                <h2>업데이트 확인</h2>
+              </div>
+              <button id="checkUpdates" class="primary">업데이트 확인</button>
+            </div>
+
+            <dl class="detail-list">
+              <div>
+                <dt>현재 버전</dt>
+                <dd id="currentVersion">확인 중</dd>
+              </div>
+              <div>
+                <dt>업데이트 기준</dt>
+                <dd id="updateFeed">확인 중</dd>
+              </div>
+              <div>
+                <dt>상태</dt>
+                <dd id="updateStatus">대기 중</dd>
+              </div>
+            </dl>
+
+            <div class="update-actions">
+              <button id="downloadUpdate" class="secondary" disabled>다운로드</button>
+              <button id="installUpdate" class="primary" disabled>재시작 후 설치</button>
+            </div>
           </div>
         </section>
 

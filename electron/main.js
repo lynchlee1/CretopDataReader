@@ -1,4 +1,5 @@
 const { app, BrowserWindow, dialog, ipcMain } = require("electron");
+const { autoUpdater } = require("electron-updater");
 const { spawn, spawnSync } = require("child_process");
 const fs = require("fs");
 const os = require("os");
@@ -13,21 +14,65 @@ const defaultCaptureOutput = path.join(runtimeRoot, "output", "cretop_condition_
 const networkLogDir = path.join(runtimeRoot, "network-logs");
 const remoteDebuggingPort = "9222";
 const cretopUrl = "https://www.cretop.com/";
+const updateFeed = "https://github.com/lynchlee1/CretopDataReader/releases";
 
 let mainWindow;
 let networkLoggerProcess = null;
+let downloadedUpdate = false;
 
-function appVersion() {
-  const pyprojectPath = path.join(pythonRoot, "pyproject.toml");
-  try {
-    const pyproject = fs.readFileSync(pyprojectPath, "utf8");
-    const projectSection = pyproject.match(/(?:^|\n)\[project\]\s*([\s\S]*?)(?=\n\[|$)/);
-    const versionMatch = projectSection?.[1].match(/^version\s*=\s*"([^"]+)"/m);
-    return versionMatch?.[1] || null;
-  } catch (_error) {
-    return null;
-  }
+autoUpdater.autoDownload = false;
+
+function sendUpdateStatus(payload) {
+  if (!mainWindow) return;
+  mainWindow.webContents.send("update:status", {
+    ...payload,
+    downloaded: downloadedUpdate,
+  });
 }
+
+autoUpdater.on("checking-for-update", () => {
+  sendUpdateStatus({ status: "checking", message: "업데이트를 확인하는 중입니다." });
+});
+
+autoUpdater.on("update-available", (info) => {
+  sendUpdateStatus({
+    status: "available",
+    message: `새 버전 ${info.version}을 사용할 수 있습니다.`,
+    version: info.version,
+  });
+});
+
+autoUpdater.on("update-not-available", (info) => {
+  sendUpdateStatus({
+    status: "not-available",
+    message: "현재 최신 버전을 사용 중입니다.",
+    version: info.version,
+  });
+});
+
+autoUpdater.on("download-progress", (progress) => {
+  sendUpdateStatus({
+    status: "downloading",
+    message: `업데이트 다운로드 중입니다. ${Math.round(progress.percent)}%`,
+    progress: progress.percent,
+  });
+});
+
+autoUpdater.on("update-downloaded", (info) => {
+  downloadedUpdate = true;
+  sendUpdateStatus({
+    status: "downloaded",
+    message: "업데이트 다운로드가 완료되었습니다. 재시작하면 설치됩니다.",
+    version: info.version,
+  });
+});
+
+autoUpdater.on("error", (error) => {
+  sendUpdateStatus({
+    status: "error",
+    message: error.message || "업데이트 확인 중 오류가 발생했습니다.",
+  });
+});
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -306,8 +351,57 @@ ipcMain.handle("app:get-defaults", () => ({
   defaultCaptureOutput,
   cdpUrl: `http://127.0.0.1:${remoteDebuggingPort}`,
   networkLogDir,
-  appVersion: appVersion(),
+  appVersion: app.getVersion(),
+  updateFeed,
+  updatesSupported: app.isPackaged,
 }));
+
+ipcMain.handle("app:check-for-updates", async () => {
+  if (!app.isPackaged) {
+    return {
+      status: "unsupported",
+      message: "업데이트 확인은 패키징된 앱에서만 사용할 수 있습니다.",
+    };
+  }
+
+  downloadedUpdate = false;
+  const result = await autoUpdater.checkForUpdates();
+  return {
+    status: "checked",
+    message: "업데이트 확인 요청을 보냈습니다.",
+    version: result?.updateInfo?.version || null,
+  };
+});
+
+ipcMain.handle("app:download-update", async () => {
+  if (!app.isPackaged) {
+    return {
+      status: "unsupported",
+      message: "업데이트 다운로드는 패키징된 앱에서만 사용할 수 있습니다.",
+    };
+  }
+
+  await autoUpdater.downloadUpdate();
+  return {
+    status: "downloading",
+    message: "업데이트 다운로드를 시작했습니다.",
+  };
+});
+
+ipcMain.handle("app:install-update", () => {
+  if (!downloadedUpdate) {
+    return {
+      status: "not-ready",
+      message: "아직 설치할 업데이트가 없습니다.",
+    };
+  }
+
+  autoUpdater.quitAndInstall(false, true);
+  return {
+    status: "installing",
+    message: "앱을 재시작해 업데이트를 설치합니다.",
+  };
+});
 
 ipcMain.handle("app:open-chrome", async () => {
   const chrome = findChrome();

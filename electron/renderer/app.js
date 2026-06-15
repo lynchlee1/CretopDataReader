@@ -3,6 +3,8 @@ const state = {
   captureOutput: "",
   pendingCapture: null,
   captureRunning: false,
+  updateAvailable: false,
+  updateDownloaded: false,
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -40,6 +42,22 @@ function showView(name) {
   $$(".nav-button").forEach((button) => {
     button.classList.toggle("active", button.dataset.view === name);
   });
+}
+
+function setUpdateStatus(payload) {
+  const message = payload?.message || "대기 중";
+  setText("#updateStatus", message);
+
+  state.updateAvailable = payload?.status === "available" || state.updateAvailable;
+  state.updateDownloaded = payload?.status === "downloaded" || payload?.downloaded || false;
+
+  if (payload?.status === "not-available" || payload?.status === "error") {
+    state.updateAvailable = false;
+    state.updateDownloaded = false;
+  }
+
+  $("#downloadUpdate").disabled = !state.updateAvailable || state.updateDownloaded;
+  $("#installUpdate").disabled = !state.updateDownloaded;
 }
 
 async function runAction(action) {
@@ -92,7 +110,17 @@ async function init() {
   $("#captureOutput").value = defaults.defaultCaptureOutput;
   if (defaults.appVersion) {
     setText("#appVersion", `v${defaults.appVersion}`);
+    setText("#currentVersion", `v${defaults.appVersion}`);
   }
+  setText("#updateFeed", defaults.updateFeed);
+  if (!defaults.updatesSupported) {
+    setUpdateStatus({ status: "unsupported", message: "업데이트 확인은 패키징된 앱에서만 사용할 수 있습니다." });
+  }
+
+  window.cretop.onUpdateStatus((payload) => {
+    setUpdateStatus(payload);
+    addLog(payload.message);
+  });
 
   $$(".nav-button").forEach((button) => {
     button.addEventListener("click", () => showView(button.dataset.view));
@@ -154,6 +182,35 @@ async function init() {
       maxPages,
       outputPath: state.captureOutput,
     });
+  });
+
+  $("#checkUpdates").addEventListener("click", async () => {
+    state.updateAvailable = false;
+    state.updateDownloaded = false;
+    $("#downloadUpdate").disabled = true;
+    $("#installUpdate").disabled = true;
+
+    const result = await runAction(() => window.cretop.checkForUpdates());
+    if (!result) return;
+    setUpdateStatus(result);
+    addLog(result.message);
+  });
+
+  $("#downloadUpdate").addEventListener("click", async () => {
+    const result = await runAction(() => window.cretop.downloadUpdate());
+    if (!result) return;
+    setUpdateStatus(result);
+    addLog(result.message);
+  });
+
+  $("#installUpdate").addEventListener("click", async () => {
+    const confirmed = window.confirm("앱을 재시작하고 다운로드된 업데이트를 설치할까요?");
+    if (!confirmed) return;
+
+    const result = await runAction(() => window.cretop.installUpdate());
+    if (!result) return;
+    setUpdateStatus(result);
+    addLog(result.message);
   });
 
   $("#clearLog").addEventListener("click", () => {

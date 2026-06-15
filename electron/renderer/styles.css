@@ -128,7 +128,8 @@ button:disabled {
 }
 
 .main:has(#session.view.active),
-.main:has(#capture.view.active) {
+.main:has(#capture.view.active),
+.main:has(#updates.view.active) {
   grid-template-rows: auto auto minmax(0, 1fr);
 }
 
@@ -232,7 +233,8 @@ h2 {
 }
 
 #session.view.active,
-#capture.view.active {
+#capture.view.active,
+#updates.view.active {
   align-content: start;
   align-self: start;
   grid-template-rows: auto;
@@ -368,6 +370,12 @@ input:focus {
   font-weight: 700;
 }
 
+.update-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
 .capture-guide {
   margin-top: 18px;
   border-top: 1px solid var(--line);
@@ -444,7 +452,8 @@ input:focus {
 }
 
 .main:has(#session.view.active) .logs,
-.main:has(#capture.view.active) .logs {
+.main:has(#capture.view.active) .logs,
+.main:has(#updates.view.active) .logs {
   max-height: none;
 }
 

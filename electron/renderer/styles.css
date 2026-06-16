@@ -390,6 +390,12 @@ label {
   padding: 18px 0 0;
 }
 
+.ppt-stage {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+}
+
 .ppt-workbench .workflow-overview {
   padding-top: 0;
 }
@@ -466,26 +472,19 @@ button.workflow-overview-item.complete > span {
 .workflow-overview-item small {
   display: block;
   min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  white-space: nowrap;
-}
-
-.workflow-overview-item strong::-webkit-scrollbar,
-.workflow-overview-item small::-webkit-scrollbar {
-  display: none;
+  overflow: hidden;
 }
 
 .workflow-overview-item strong {
-  font-size: var(--ui-text-lg);
+  font-size: var(--ui-text-md);
 }
 
 .workflow-overview-item small {
   margin-top: 3px;
   color: var(--muted);
-  font-size: var(--ui-text-sm);
-  line-height: 1.45;
+  font-size: var(--ui-text-md);
+  line-height: var(--ui-line-normal);
+  white-space: normal;
 }
 
 .ppt-tabs {
@@ -718,7 +717,7 @@ button.workflow-overview-item.complete > span {
 
 .data-table th,
 .data-table td {
-  padding: 8px;
+  padding: 9px 10px;
   border-bottom: 1px solid var(--line);
   vertical-align: middle;
 }
@@ -814,13 +813,19 @@ button.workflow-overview-item.complete > span {
   font-weight: 700;
 }
 
+.detail-list dd,
+.boundary-list dd {
+  font-size: var(--ui-text-md);
+  line-height: var(--ui-line-normal);
+}
+
 .page-section p,
 .page-section ol,
 .page-section ul {
   margin: 0;
   color: var(--muted);
-  font-size: var(--ui-text-lg);
-  line-height: 1.7;
+  font-size: var(--ui-text-md);
+  line-height: var(--ui-line-relaxed);
 }
 
 .page-section ol,
@@ -874,9 +879,12 @@ button.workflow-overview-item.complete > span {
   background: var(--surface-soft);
   color: var(--text);
   font-size: var(--ui-text-md);
+  line-height: var(--ui-line-normal);
 }
 
 .logs time {
   color: var(--muted);
+  font-size: var(--ui-text-md);
+  line-height: var(--ui-line-normal);
   font-variant-numeric: tabular-nums;
 }

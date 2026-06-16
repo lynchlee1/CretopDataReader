@@ -325,8 +325,8 @@
                         </div>
 
                         <div class="page-body">
-                            <section class="ppt-workbench">
-                                <div class="workflow-overview">
+                            <section class="ppt-workbench ui-workbench">
+                                <div class="workflow-overview ui-workflow">
                                     <button
                                         class="ui-step-card workflow-overview-item active"
                                         type="button"
@@ -389,65 +389,66 @@
                                     </button>
                                 </div>
 
-                                <div
-                                    class="ui-segmented ppt-tabs"
-                                    role="tablist"
-                                    aria-label="PPT Forger 작업 영역"
-                                >
-                                    <button
-                                        class="ui-segmented-button ppt-tab active"
-                                        type="button"
-                                        role="tab"
-                                        data-ppt-tab="source"
-                                        id="pptTabSource"
-                                        aria-controls="pptPanelSource"
-                                        aria-selected="true"
+                                <div class="ppt-stage">
+                                    <div
+                                        class="ui-segmented ppt-tabs"
+                                        role="tablist"
+                                        aria-label="PPT Forger 작업 영역"
                                     >
-                                        기본 입력
-                                    </button>
-                                    <button
-                                        class="ui-segmented-button ppt-tab"
-                                        type="button"
-                                        role="tab"
-                                        data-ppt-tab="shareholders"
-                                        id="pptTabShareholders"
-                                        aria-controls="pptPanelShareholders"
-                                        aria-selected="false"
-                                    >
-                                        지분구조 분석
-                                    </button>
-                                    <button
-                                        class="ui-segmented-button ppt-tab"
-                                        type="button"
-                                        role="tab"
-                                        data-ppt-tab="copy"
-                                        id="pptTabCopy"
-                                        aria-controls="pptPanelCopy"
-                                        aria-selected="false"
-                                    >
-                                        AI 문구
-                                    </button>
-                                    <button
-                                        class="ui-segmented-button ppt-tab"
-                                        type="button"
-                                        role="tab"
-                                        data-ppt-tab="review"
-                                        id="pptTabReview"
-                                        aria-controls="pptPanelReview"
-                                        aria-selected="false"
-                                    >
-                                        검토
-                                    </button>
-                                </div>
+                                        <button
+                                            class="ui-segmented-button ppt-tab active"
+                                            type="button"
+                                            role="tab"
+                                            data-ppt-tab="source"
+                                            id="pptTabSource"
+                                            aria-controls="pptPanelSource"
+                                            aria-selected="true"
+                                        >
+                                            기본 입력
+                                        </button>
+                                        <button
+                                            class="ui-segmented-button ppt-tab"
+                                            type="button"
+                                            role="tab"
+                                            data-ppt-tab="shareholders"
+                                            id="pptTabShareholders"
+                                            aria-controls="pptPanelShareholders"
+                                            aria-selected="false"
+                                        >
+                                            지분구조 분석
+                                        </button>
+                                        <button
+                                            class="ui-segmented-button ppt-tab"
+                                            type="button"
+                                            role="tab"
+                                            data-ppt-tab="copy"
+                                            id="pptTabCopy"
+                                            aria-controls="pptPanelCopy"
+                                            aria-selected="false"
+                                        >
+                                            AI 문구
+                                        </button>
+                                        <button
+                                            class="ui-segmented-button ppt-tab"
+                                            type="button"
+                                            role="tab"
+                                            data-ppt-tab="review"
+                                            id="pptTabReview"
+                                            aria-controls="pptPanelReview"
+                                            aria-selected="false"
+                                        >
+                                            검토
+                                        </button>
+                                    </div>
 
                                 <section
                                     id="pptPanelSource"
-                                    class="ppt-tab-panel active"
+                                    class="ppt-tab-panel ui-section-card active"
                                     role="tabpanel"
                                     data-ppt-panel="source"
                                     aria-labelledby="pptTabSource"
                                 >
-                                    <div class="section-heading">
+                                    <div class="section-heading ui-action-strip">
                                         <div>
                                             <h3>기본 입력</h3>
                                             <p>
@@ -459,10 +460,10 @@
                                             데이터 만들기
                                         </button>
                                     </div>
-                                    <div class="ppt-field-stack">
-                                        <section class="ppt-field-group">
+                                    <div class="ppt-field-stack ui-field-stack">
+                                        <section class="ppt-field-group ui-field-card">
                                             <h4>회사와 발행 조건</h4>
-                                            <div class="form-grid ppt-form-grid">
+                                            <div class="form-grid ppt-form-grid ui-field-grid">
                                                 <label>
                                                     <span>종목코드</span>
                                                     <input class="ui-input"
@@ -499,9 +500,9 @@
                                                 </label>
                                             </div>
                                         </section>
-                                        <section class="ppt-field-group">
+                                        <section class="ppt-field-group ui-field-card">
                                             <h4>지분율 계산</h4>
-                                            <div class="form-grid ppt-form-grid">
+                                            <div class="form-grid ppt-form-grid ui-field-grid">
                                                 <label>
                                                     <span>Call 비율(%)</span>
                                                     <input class="ui-input"
@@ -539,10 +540,10 @@
                                                 </label>
                                             </div>
                                         </section>
-                                        <section class="ppt-field-group">
+                                        <section class="ppt-field-group ui-field-card ui-file-card">
                                             <h4>파일</h4>
-                                            <div class="form-grid ppt-form-grid">
-                                                <label class="file-field">
+                                            <div class="form-grid ppt-form-grid ui-field-grid">
+                                                <label class="file-field ui-path-field">
                                                     <span>Model.xlsx</span>
                                                     <div>
                                                         <input class="ui-input"
@@ -558,7 +559,7 @@
                                                         </button>
                                                     </div>
                                                 </label>
-                                                <label class="file-field">
+                                                <label class="file-field ui-path-field">
                                                     <span>PPT 템플릿</span>
                                                     <div>
                                                         <input class="ui-input"
@@ -574,7 +575,7 @@
                                                         </button>
                                                     </div>
                                                 </label>
-                                                <label class="file-field wide">
+                                                <label class="file-field wide ui-path-field">
                                                     <span>저장 파일</span>
                                                     <div>
                                                         <input class="ui-input"
@@ -597,13 +598,13 @@
 
                                 <section
                                     id="pptPanelShareholders"
-                                    class="ppt-tab-panel"
+                                    class="ppt-tab-panel ui-section-card"
                                     role="tabpanel"
                                     data-ppt-panel="shareholders"
                                     aria-labelledby="pptTabShareholders"
                                     hidden
                                 >
-                                    <div class="section-heading">
+                                    <div class="section-heading ui-action-strip">
                                         <div>
                                             <h3>지분구조 분석</h3>
                                             <p>
@@ -615,7 +616,7 @@
                                             AI 문구로 이동
                                         </button>
                                     </div>
-                                    <div class="shareholder-controls">
+                                    <div class="shareholder-controls ui-inline-controls">
                                         <label>
                                             <span>표시 주주 수</span>
                                             <input class="ui-input"
@@ -626,7 +627,7 @@
                                             />
                                         </label>
                                     </div>
-                                    <div class="table-wrap">
+                                    <div class="table-wrap ui-table-frame">
                                         <table class="data-table">
                                             <thead>
                                                 <tr>
@@ -654,13 +655,13 @@
 
                                 <section
                                     id="pptPanelCopy"
-                                    class="ppt-tab-panel"
+                                    class="ppt-tab-panel ui-section-card"
                                     role="tabpanel"
                                     data-ppt-panel="copy"
                                     aria-labelledby="pptTabCopy"
                                     hidden
                                 >
-                                    <div class="section-heading">
+                                    <div class="section-heading ui-action-strip">
                                         <div>
                                             <h3>AI 문구</h3>
                                             <p>
@@ -676,21 +677,21 @@
                                             AI 문구 생성
                                         </button>
                                     </div>
-                                    <div class="ppt-field-stack">
-                                        <section class="ppt-field-group">
+                                    <div class="ppt-field-stack ui-field-stack">
+                                        <section class="ppt-field-group ui-field-card ui-grid-card-3">
                                             <h4>투자포인트</h4>
-                                            <div class="form-grid ppt-form-grid">
+                                            <div class="form-grid ppt-form-grid ui-field-grid">
                                                 <label>
                                                     <span>투자포인트 1 제목</span>
                                                     <input class="ui-input" id="investmentTextTitle1" type="text" />
                                                 </label>
                                                 <label>
                                                     <span>투자포인트 1 내용 A</span>
-                                                    <input class="ui-input" id="investmentTextContents11" type="text" />
+                                                    <textarea class="ui-textarea ui-textarea--compact" id="investmentTextContents11"></textarea>
                                                 </label>
                                                 <label>
                                                     <span>투자포인트 1 내용 B</span>
-                                                    <input class="ui-input" id="investmentTextContents12" type="text" />
+                                                    <textarea class="ui-textarea ui-textarea--compact" id="investmentTextContents12"></textarea>
                                                 </label>
                                                 <label>
                                                     <span>투자포인트 2 제목</span>
@@ -698,11 +699,11 @@
                                                 </label>
                                                 <label>
                                                     <span>투자포인트 2 내용 A</span>
-                                                    <input class="ui-input" id="investmentTextContents21" type="text" />
+                                                    <textarea class="ui-textarea ui-textarea--compact" id="investmentTextContents21"></textarea>
                                                 </label>
                                                 <label>
                                                     <span>투자포인트 2 내용 B</span>
-                                                    <input class="ui-input" id="investmentTextContents22" type="text" />
+                                                    <textarea class="ui-textarea ui-textarea--compact" id="investmentTextContents22"></textarea>
                                                 </label>
                                                 <label>
                                                     <span>투자포인트 3 제목</span>
@@ -710,17 +711,17 @@
                                                 </label>
                                                 <label>
                                                     <span>투자포인트 3 내용 A</span>
-                                                    <input class="ui-input" id="investmentTextContents31" type="text" />
+                                                    <textarea class="ui-textarea ui-textarea--compact" id="investmentTextContents31"></textarea>
                                                 </label>
                                                 <label>
                                                     <span>투자포인트 3 내용 B</span>
-                                                    <input class="ui-input" id="investmentTextContents32" type="text" />
+                                                    <textarea class="ui-textarea ui-textarea--compact" id="investmentTextContents32"></textarea>
                                                 </label>
                                             </div>
                                         </section>
-                                        <section class="ppt-field-group">
+                                        <section class="ppt-field-group ui-field-card ui-grid-card-2">
                                             <h4>주가 포인트</h4>
-                                            <div class="form-grid ppt-form-grid">
+                                            <div class="form-grid ppt-form-grid ui-field-grid">
                                                 <label>
                                                     <span>주가 포인트 1</span>
                                                     <input class="ui-input" id="priceTextTitle1" type="text" />
@@ -731,16 +732,16 @@
                                                 </label>
                                             </div>
                                         </section>
-                                        <section class="ppt-field-group">
+                                        <section class="ppt-field-group ui-field-card ui-grid-card-2">
                                             <h4>리스크</h4>
-                                            <div class="form-grid ppt-form-grid">
+                                            <div class="form-grid ppt-form-grid ui-field-grid">
                                                 <label>
                                                     <span>리스크 1 제목</span>
                                                     <input class="ui-input" id="riskTextTitle1" type="text" />
                                                 </label>
                                                 <label>
                                                     <span>리스크 1 내용</span>
-                                                    <input class="ui-input" id="riskTextContents11" type="text" />
+                                                    <textarea class="ui-textarea ui-textarea--compact" id="riskTextContents11"></textarea>
                                                 </label>
                                                 <label>
                                                     <span>리스크 2 제목</span>
@@ -748,7 +749,7 @@
                                                 </label>
                                                 <label>
                                                     <span>리스크 2 내용</span>
-                                                    <input class="ui-input" id="riskTextContents21" type="text" />
+                                                    <textarea class="ui-textarea ui-textarea--compact" id="riskTextContents21"></textarea>
                                                 </label>
                                             </div>
                                         </section>
@@ -757,13 +758,13 @@
 
                                 <section
                                     id="pptPanelReview"
-                                    class="ppt-tab-panel"
+                                    class="ppt-tab-panel ui-section-card"
                                     role="tabpanel"
                                     data-ppt-panel="review"
                                     aria-labelledby="pptTabReview"
                                     hidden
                                 >
-                                    <div class="section-heading">
+                                    <div class="section-heading ui-action-strip">
                                         <div>
                                             <h3>결과 검토</h3>
                                             <p>
@@ -775,8 +776,8 @@
                                             PPT 생성
                                         </button>
                                     </div>
-                                    <div class="review-grid">
-                                        <section class="review-block">
+                                    <div class="review-grid ui-review-grid">
+                                        <section class="review-block ui-field-card">
                                             <h4>핵심 요약</h4>
                                             <dl
                                                 id="pptSummaryPreview"
@@ -791,7 +792,7 @@
                                                 </div>
                                             </dl>
                                         </section>
-                                        <section class="review-block">
+                                        <section class="review-block ui-field-card">
                                             <h4>회사 상세</h4>
                                             <dl
                                                 id="companyDetailPreview"
@@ -806,9 +807,9 @@
                                                 </div>
                                             </dl>
                                         </section>
-                                        <section class="review-block wide">
+                                        <section class="review-block wide ui-field-card">
                                             <h4>지분율 미리보기</h4>
-                                            <div class="table-wrap">
+                                            <div class="table-wrap ui-table-frame">
                                                 <table
                                                     class="data-table ownership-preview-table"
                                                 >
@@ -832,9 +833,9 @@
                                                 </table>
                                             </div>
                                         </section>
-                                        <section class="review-block">
+                                        <section class="review-block ui-field-card">
                                             <h4>주주구분 현황</h4>
-                                            <div class="table-wrap">
+                                            <div class="table-wrap ui-table-frame">
                                                 <table
                                                     class="data-table classification-preview-table"
                                                 >
@@ -860,6 +861,7 @@
                                     </div>
                                     <input id="pptData" type="hidden" value="" />
                                 </section>
+                                </div>
                             </section>
 
                             <div data-info="ppt"></div>

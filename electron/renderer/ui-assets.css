@@ -25,6 +25,9 @@
   --ui-control-radius: 10px;
   --ui-control-padding-x: 12px;
   --ui-button-padding-x: 16px;
+  --ui-panel-pad: 16px;
+  --ui-cluster-gap: 12px;
+  --ui-column-gap: 16px;
   --ui-checkbox-size: 18px;
   --ui-tab-height: 38px;
   --ui-tab-height-compact: 36px;
@@ -35,7 +38,11 @@
 
 body {
   font-family: var(--ui-font-family);
+  font-size: var(--ui-text-md);
+  line-height: var(--ui-line-normal);
   letter-spacing: 0;
+  text-size-adjust: none;
+  -webkit-text-size-adjust: none;
 }
 
 button,
@@ -43,6 +50,8 @@ input,
 select,
 textarea {
   font: inherit;
+  font-size: var(--ui-text-md);
+  line-height: var(--ui-line-normal);
   letter-spacing: 0;
 }
 
@@ -118,8 +127,8 @@ textarea {
   border-radius: var(--ui-control-radius);
   background: var(--surface-soft);
   color: var(--text);
-  font-size: var(--ui-text-md);
-  line-height: var(--ui-line-normal);
+  font-size: var(--ui-text-md) !important;
+  line-height: var(--ui-line-normal) !important;
   outline: none;
 }
 
@@ -142,7 +151,7 @@ select.ui-input {
 
 input[type="date"] {
   appearance: none;
-  font-size: var(--ui-text-md);
+  font-size: var(--ui-text-md) !important;
 }
 
 input[type="date"].ui-input {
@@ -155,8 +164,8 @@ input[type="date"]::-webkit-datetime-edit-text,
 input[type="date"]::-webkit-datetime-edit-month-field,
 input[type="date"]::-webkit-datetime-edit-day-field,
 input[type="date"]::-webkit-datetime-edit-year-field {
-  font-size: var(--ui-text-md);
-  line-height: var(--ui-line-normal);
+  font-size: var(--ui-text-md) !important;
+  line-height: var(--ui-line-normal) !important;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
@@ -180,6 +189,12 @@ textarea {
   font-family: var(--ui-font-mono) !important;
   font-size: var(--ui-text-md) !important;
   line-height: 1.6 !important;
+}
+
+.ui-textarea--compact {
+  min-height: 76px !important;
+  font-family: var(--ui-font-family) !important;
+  line-height: var(--ui-line-relaxed) !important;
 }
 
 .prompt-field .ui-textarea {
@@ -254,4 +269,210 @@ textarea:focus {
 .ui-step-card {
   font-size: var(--ui-text-md) !important;
   line-height: var(--ui-line-normal) !important;
+}
+
+.ui-step-card strong,
+.ui-step-card small {
+  font-size: var(--ui-text-md) !important;
+  line-height: var(--ui-line-normal) !important;
+}
+
+.ui-workbench {
+  display: grid !important;
+  grid-template-columns: minmax(224px, 248px) minmax(0, 1fr);
+  gap: var(--ui-column-gap) !important;
+  align-items: start;
+}
+
+.ui-workbench > .ui-workflow {
+  position: sticky;
+  top: 0;
+}
+
+.ui-workflow {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: var(--ui-cluster-gap) !important;
+  padding: 0 !important;
+}
+
+.ui-section-card {
+  padding: var(--ui-panel-pad) !important;
+  border-radius: 12px !important;
+  background: var(--surface) !important;
+}
+
+.ui-action-strip {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--ui-column-gap);
+  align-items: center !important;
+  margin: 0 0 var(--ui-panel-pad) !important;
+  padding: 0 0 var(--ui-panel-pad);
+  border-bottom: 1px solid var(--line);
+}
+
+.ui-action-strip h3 {
+  font-size: var(--ui-text-2xl) !important;
+}
+
+.ui-action-strip p {
+  max-width: 720px;
+}
+
+.ui-action-strip .ui-button {
+  justify-self: end;
+  min-width: 112px;
+}
+
+.ui-field-stack {
+  display: grid !important;
+  gap: var(--ui-cluster-gap) !important;
+}
+
+.ui-field-card {
+  min-width: 0;
+  padding: var(--ui-panel-pad) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 10px !important;
+  background: var(--surface-soft) !important;
+}
+
+.ui-field-card > h4 {
+  color: var(--text);
+  font-size: var(--ui-text-lg) !important;
+  font-weight: 850;
+}
+
+.ui-field-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+  column-gap: var(--ui-column-gap) !important;
+  row-gap: var(--ui-cluster-gap) !important;
+  width: 100%;
+}
+
+.ui-field-grid .ui-input,
+.ui-field-grid .ui-textarea,
+.ui-field-grid input,
+.ui-field-grid textarea,
+.ui-field-grid select {
+  width: 100% !important;
+}
+
+.ui-path-field {
+  width: auto !important;
+  min-width: min(100%, 320px);
+}
+
+.ui-path-field > div {
+  width: 100% !important;
+  gap: 8px !important;
+}
+
+.ui-path-field.wide {
+  grid-column: 1 / -1 !important;
+}
+
+.ui-file-card .ui-field-grid {
+  grid-template-columns: repeat(2, minmax(260px, 1fr)) !important;
+}
+
+.ui-grid-card-3 .ui-field-grid {
+  grid-template-columns: repeat(3, minmax(180px, 1fr)) !important;
+}
+
+.ui-grid-card-2 .ui-field-grid {
+  grid-template-columns: repeat(2, minmax(220px, 1fr)) !important;
+}
+
+.ui-path-field .ui-button {
+  min-width: 58px;
+}
+
+.ui-inline-controls {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: var(--ui-cluster-gap);
+  align-items: end;
+}
+
+.ui-table-frame {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.ui-table-frame .data-table {
+  min-width: 760px;
+}
+
+.ui-table-frame .data-table .ui-input,
+.ui-table-frame .data-table input {
+  width: 100% !important;
+}
+
+.ui-table-frame .data-table th {
+  background: #f8fafc;
+  font-weight: 850;
+}
+
+.ui-table-frame .data-table th:first-child,
+.ui-table-frame .data-table td:first-child {
+  padding-left: var(--ui-control-padding-x);
+}
+
+.ui-table-frame .data-table th:last-child,
+.ui-table-frame .data-table td:last-child {
+  padding-right: var(--ui-control-padding-x);
+}
+
+.ui-review-grid {
+  display: grid !important;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(360px, 1.1fr) !important;
+  gap: var(--ui-cluster-gap) !important;
+}
+
+.ui-review-grid .detail-list {
+  gap: 10px;
+}
+
+.ui-review-grid .detail-list div {
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 1240px) {
+  .ui-workbench {
+    grid-template-columns: 1fr;
+  }
+
+  .ui-workbench > .ui-workflow {
+    position: static;
+  }
+
+  .ui-workflow {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .ui-review-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 1080px) {
+  .ui-action-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .ui-action-strip .ui-button {
+    justify-self: start;
+  }
+
+  .ui-file-card .ui-field-grid,
+  .ui-grid-card-3 .ui-field-grid,
+  .ui-grid-card-2 .ui-field-grid {
+    grid-template-columns: 1fr !important;
+  }
 }

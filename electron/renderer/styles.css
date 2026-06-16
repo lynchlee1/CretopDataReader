@@ -32,7 +32,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -97,6 +98,11 @@ button:disabled {
   gap: 8px;
 }
 
+.nav-group {
+  display: grid;
+  gap: 6px;
+}
+
 .app-version {
   margin-top: auto;
   color: #9ca3af;
@@ -113,6 +119,17 @@ button:disabled {
   color: #cbd5e1;
   line-height: 1.35;
   text-align: left;
+}
+
+.nav-child {
+  min-height: 38px;
+  padding-left: 28px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.nav-parent {
+  font-weight: 800;
 }
 
 .nav-button:hover,
@@ -153,7 +170,8 @@ button:disabled {
 
 .nav-button,
 button,
-input {
+input,
+textarea {
   -webkit-app-region: no-drag;
 }
 
@@ -236,6 +254,7 @@ h2 {
 
 #session.view.active,
 #capture.view.active,
+#ppt-forger.view.active,
 #updates.view.active {
   align-content: start;
   align-self: stretch;
@@ -356,7 +375,8 @@ label {
   gap: 8px;
 }
 
-input {
+input,
+textarea {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -370,7 +390,17 @@ input {
   padding: 0 12px;
 }
 
-input:focus {
+textarea {
+  min-height: 220px;
+  padding: 12px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+input:focus,
+textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
@@ -379,6 +409,24 @@ input:focus {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
+}
+
+.ppt-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.json-field {
+  grid-column: 1 / -1;
+}
+
+.checkbox-field {
+  align-content: start;
+}
+
+.checkbox-field input {
+  width: 18px;
+  height: 18px;
+  margin: 12px 0 0;
 }
 
 .detail-list {

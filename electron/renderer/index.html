@@ -18,8 +18,13 @@
         </div>
 
         <nav class="nav">
-          <button class="nav-button active" data-view="session">Cretop 로그인 연결하기</button>
-          <button class="nav-button" data-view="capture">Cretop 검색결과 저장하기</button>
+          <div class="nav-group">
+            <button class="nav-button nav-parent active" data-view="session">Cretop</button>
+            <button class="nav-button nav-child" data-view="capture">Cretop 검색결과 저장하기</button>
+          </div>
+          <div class="nav-group">
+            <button class="nav-button nav-parent" data-view="ppt-forger">PPT Forger</button>
+          </div>
           <button class="nav-button" data-view="updates">앱 최신버전 설치하기</button>
         </nav>
 
@@ -45,7 +50,7 @@
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">Chrome Session</p>
-                <h2>Cretop 로그인 연결하기</h2>
+                <h2>Cretop</h2>
               </div>
               <div class="panel-actions">
                 <button id="openChrome" class="primary">Chrome 열기</button>
@@ -56,52 +61,7 @@
             </div>
 
             <div class="page-body">
-              <section class="page-section guide-section">
-                <h3>사용 설명서</h3>
-                <ol>
-                  <li><code>Chrome 열기</code>를 누릅니다.</li>
-                  <li>열린 Chrome에서 Maxawon에 직접 로그인합니다.</li>
-                  <li>Maxawon에서 필요한 화면까지 이동합니다.</li>
-                  <li>앱으로 돌아와 <code>로그인 완료</code>를 누릅니다.</li>
-                  <li>왼쪽 메뉴에서 실행할 기능을 선택합니다.</li>
-                </ol>
-              </section>
-
-              <section class="page-section boundary-section">
-                <h3>기능 경계</h3>
-                <dl class="boundary-list">
-                  <div>
-                    <dt>Source</dt>
-                    <dd>사용자가 Chrome에서 직접 로그인한 브라우저 세션</dd>
-                  </div>
-                  <div>
-                    <dt>동작</dt>
-                    <dd>앱에서 실행할 Chrome을 열고 로그인 완료 상태를 표시합니다.</dd>
-                  </div>
-                  <div>
-                    <dt>Output</dt>
-                    <dd>앱의 세션 연결 상태와 이후 기능에서 사용할 Chrome 세션</dd>
-                  </div>
-                  <div>
-                    <dt>제외</dt>
-                    <dd>로그인 자동화, CAPTCHA 처리, 접근 제한 우회는 하지 않습니다.</dd>
-                  </div>
-                </dl>
-              </section>
-
-              <section class="page-section note-section">
-                <h3>Chrome 종료 범위</h3>
-                <dl class="boundary-list">
-                  <div>
-                    <dt>실행된 Chrome 종료</dt>
-                    <dd>이 앱에서 연 Chrome만 종료합니다.</dd>
-                  </div>
-                  <div>
-                    <dt>전체 Chrome 종료</dt>
-                    <dd>사용자가 따로 열어 둔 Chrome까지 닫을 수 있습니다.</dd>
-                  </div>
-                </dl>
-              </section>
+              <div data-info="session"></div>
             </div>
           </div>
         </section>
@@ -136,36 +96,167 @@
                 </div>
               </section>
 
-              <section class="page-section boundary-section">
-                <h3>기능 경계</h3>
-                <dl class="boundary-list">
-                  <div>
-                    <dt>Source</dt>
-                    <dd>현재 Chrome 화면에 표시된 조건검색 결과 테이블</dd>
-                  </div>
-                  <div>
-                    <dt>동작</dt>
-                    <dd>보이는 결과 테이블을 읽고 지정한 CSV 파일로 저장합니다.</dd>
-                  </div>
-                  <div>
-                    <dt>Output</dt>
-                    <dd>지정한 경로의 CSV 파일과 앱 화면의 복사 결과 미리보기</dd>
-                  </div>
-                  <div>
-                    <dt>제외</dt>
-                    <dd>조건검색 실행, 후보 회사 선택, 로그인 자동화는 이 기능에서 처리하지 않습니다.</dd>
-                  </div>
-                </dl>
+              <div data-info="capture"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="ppt-forger" class="view">
+          <div class="panel page-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">PPT Template Export</p>
+                <h2>PPT Forger</h2>
+              </div>
+              <div class="panel-actions">
+                <button id="buildPptData" class="secondary">데이터 만들기</button>
+                <button id="generatePpt" class="primary">PPT 생성</button>
+              </div>
+            </div>
+
+            <div class="page-body">
+              <section class="page-section control-section">
+                <h3>원본 데이터</h3>
+                <div class="form-grid ppt-form-grid">
+                  <label>
+                    <span>종목코드</span>
+                    <input id="pptStockCode" type="text" inputmode="numeric" maxlength="6" placeholder="예: 005930" />
+                  </label>
+                  <label>
+                    <span>메자닌 종류</span>
+                    <input id="pptMezzType" type="text" placeholder="예: 전환사채(CB)" />
+                  </label>
+                  <label>
+                    <span>투자금액</span>
+                    <input id="pptInvestmentAmt" type="text" placeholder="예: 100" />
+                  </label>
+                  <label>
+                    <span>발행금액</span>
+                    <input id="pptIssueAmt" type="text" placeholder="예: 200" />
+                  </label>
+                  <label>
+                    <span>Call 비율(%)</span>
+                    <input id="pptCallPercent" type="number" min="0" max="100" placeholder="예: 30" />
+                  </label>
+                  <label>
+                    <span>리픽싱 비율(%)</span>
+                    <input id="pptRefixingPercent" type="number" min="0" max="100" placeholder="예: 70" />
+                  </label>
+                  <label>
+                    <span>기발행 메자닌 주식수</span>
+                    <input id="pptPriorMezzanineShares" type="text" placeholder="없으면 비워둠" />
+                  </label>
+                  <label>
+                    <span>표시 주주 수</span>
+                    <input id="pptMaxShareholders" type="number" min="1" value="10" />
+                  </label>
+                  <label class="checkbox-field">
+                    <span>자사주 EB</span>
+                    <input id="pptTreasuryEb" type="checkbox" />
+                  </label>
+                  <label class="file-field">
+                    <span>Model.xlsx</span>
+                    <div>
+                      <input id="pptExcel" type="text" readonly />
+                      <button id="pickPptExcel" class="secondary">선택</button>
+                    </div>
+                  </label>
+                  <label class="file-field">
+                    <span>PPT 템플릿</span>
+                    <div>
+                      <input id="pptTemplate" type="text" readonly />
+                      <button id="pickPptTemplate" class="secondary">선택</button>
+                    </div>
+                  </label>
+                  <label class="file-field">
+                    <span>저장 파일</span>
+                    <div>
+                      <input id="pptOutput" type="text" readonly />
+                      <button id="pickPptOutput" class="secondary">변경</button>
+                    </div>
+                  </label>
+                </div>
               </section>
 
-              <section class="page-section guide-section">
-                <h3>기능 설명서</h3>
-                <ol>
-                  <li>Chrome에서 조건검색 결과 테이블 화면을 띄웁니다.</li>
-                  <li>저장 파일과 최대 페이지를 확인합니다.</li>
-                  <li><code>현재 조건검색 테이블 저장</code>을 누릅니다.</li>
-                </ol>
+              <section class="page-section control-section">
+                <h3>AI 문구</h3>
+                <div class="form-grid ppt-form-grid">
+                  <label>
+                    <span>투자포인트 1 제목</span>
+                    <input id="investmentTextTitle1" type="text" />
+                  </label>
+                  <label>
+                    <span>투자포인트 1 내용 A</span>
+                    <input id="investmentTextContents11" type="text" />
+                  </label>
+                  <label>
+                    <span>투자포인트 1 내용 B</span>
+                    <input id="investmentTextContents12" type="text" />
+                  </label>
+                  <label>
+                    <span>투자포인트 2 제목</span>
+                    <input id="investmentTextTitle2" type="text" />
+                  </label>
+                  <label>
+                    <span>투자포인트 2 내용 A</span>
+                    <input id="investmentTextContents21" type="text" />
+                  </label>
+                  <label>
+                    <span>투자포인트 2 내용 B</span>
+                    <input id="investmentTextContents22" type="text" />
+                  </label>
+                  <label>
+                    <span>투자포인트 3 제목</span>
+                    <input id="investmentTextTitle3" type="text" />
+                  </label>
+                  <label>
+                    <span>투자포인트 3 내용 A</span>
+                    <input id="investmentTextContents31" type="text" />
+                  </label>
+                  <label>
+                    <span>투자포인트 3 내용 B</span>
+                    <input id="investmentTextContents32" type="text" />
+                  </label>
+                  <label>
+                    <span>주가 포인트 1</span>
+                    <input id="priceTextTitle1" type="text" />
+                  </label>
+                  <label>
+                    <span>주가 포인트 2</span>
+                    <input id="priceTextTitle2" type="text" />
+                  </label>
+                  <label>
+                    <span>리스크 1 제목</span>
+                    <input id="riskTextTitle1" type="text" />
+                  </label>
+                  <label>
+                    <span>리스크 1 내용</span>
+                    <input id="riskTextContents11" type="text" />
+                  </label>
+                  <label>
+                    <span>리스크 2 제목</span>
+                    <input id="riskTextTitle2" type="text" />
+                  </label>
+                  <label>
+                    <span>리스크 2 내용</span>
+                    <input id="riskTextContents21" type="text" />
+                  </label>
+                </div>
               </section>
+
+              <section class="page-section control-section">
+                <h3>치환 데이터 JSON</h3>
+                <label class="json-field">
+                  <span>데이터 만들기 후 필요하면 직접 수정할 수 있습니다.</span>
+                  <textarea id="pptData" spellcheck="false">{
+  "corp_name": "",
+  "call_percent": "",
+  "refixing_percent": ""
+}</textarea>
+                </label>
+              </section>
+
+              <div data-info="ppt"></div>
             </div>
           </div>
         </section>
@@ -203,36 +294,7 @@
                 </dl>
               </section>
 
-              <section class="page-section boundary-section">
-                <h3>기능 경계</h3>
-                <dl class="boundary-list">
-                  <div>
-                    <dt>Source</dt>
-                    <dd>현재 설치된 앱 버전과 GitHub 릴리스 업데이트 기준</dd>
-                  </div>
-                  <div>
-                    <dt>동작</dt>
-                    <dd>새 버전을 확인하고, 사용자가 선택하면 다운로드 후 재시작 설치를 진행합니다.</dd>
-                  </div>
-                  <div>
-                    <dt>Output</dt>
-                    <dd>업데이트 상태 표시, 다운로드된 새 버전, 재시작 후 설치 결과</dd>
-                  </div>
-                  <div>
-                    <dt>제외</dt>
-                    <dd>패키징되지 않은 개발 실행 상태에서는 실제 업데이트 설치를 진행하지 않습니다.</dd>
-                  </div>
-                </dl>
-              </section>
-
-              <section class="page-section guide-section">
-                <h3>기능 설명서</h3>
-                <ol>
-                  <li><code>새 버전 확인</code>을 눌러 릴리스 상태를 확인합니다.</li>
-                  <li>새 버전이 있으면 <code>업데이트 다운로드</code>를 누릅니다.</li>
-                  <li>다운로드가 끝나면 <code>재시작 후 설치</code>를 누릅니다.</li>
-                </ol>
-              </section>
+              <div data-info="updates"></div>
             </div>
           </div>
         </section>

@@ -12,6 +12,7 @@ const srcRoot = path.join(pythonRoot, "src");
 const profileDir = path.join(runtimeRoot, "chrome-profile");
 const defaultCaptureOutput = path.join(runtimeRoot, "output", "maxawon_condition_search.csv");
 const networkLogDir = path.join(runtimeRoot, "network-logs");
+const defaultPptOutput = path.join(os.homedir(), "Downloads", `Deal_Summary_${Date.now()}.pptx`);
 const remoteDebuggingPort = "9222";
 const maxawonUrl = "https://www.maxawon.com/";
 const updateFeed = "https://github.com/lynchlee1/Maxawon/releases";
@@ -376,6 +377,7 @@ function findChrome() {
 
 ipcMain.handle("app:get-defaults", () => ({
   defaultCaptureOutput,
+  defaultPptOutput,
   cdpUrl: `http://127.0.0.1:${remoteDebuggingPort}`,
   networkLogDir,
   appVersion: getProjectVersion(),
@@ -481,6 +483,84 @@ ipcMain.handle("app:pick-capture-output", async (_event, currentPath) => {
 
   if (result.canceled || !result.filePath) return null;
   return result.filePath;
+});
+
+ipcMain.handle("app:pick-ppt-template", async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: "PPT 템플릿 선택",
+    properties: ["openFile"],
+    filters: [
+      { name: "PowerPoint", extensions: ["pptx"] },
+      { name: "All files", extensions: ["*"] },
+    ],
+  });
+
+  if (result.canceled || result.filePaths.length === 0) return null;
+  return result.filePaths[0];
+});
+
+ipcMain.handle("app:pick-ppt-excel", async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: "PPT Forger Model.xlsx 선택",
+    properties: ["openFile"],
+    filters: [
+      { name: "Excel", extensions: ["xlsx"] },
+      { name: "All files", extensions: ["*"] },
+    ],
+  });
+
+  if (result.canceled || result.filePaths.length === 0) return null;
+  return result.filePaths[0];
+});
+
+ipcMain.handle("app:pick-ppt-output", async (_event, currentPath) => {
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: "PPT 저장",
+    defaultPath: currentPath || defaultPptOutput,
+    filters: [
+      { name: "PowerPoint", extensions: ["pptx"] },
+      { name: "All files", extensions: ["*"] },
+    ],
+  });
+
+  if (result.canceled || !result.filePath) return null;
+  return result.filePath;
+});
+
+ipcMain.handle("app:ppt-fetch-company", async (_event, stockCode) => {
+  const { fetchCompanyInfo } = require("./ppt-forger-data");
+  return fetchCompanyInfo(stockCode);
+});
+
+ipcMain.handle("app:ppt-read-excel", async (_event, excelPath) => {
+  const { readExcelData } = require("./ppt-forger-data");
+  if (!excelPath) throw new Error("Model.xlsx 파일을 선택하세요.");
+  return readExcelData(excelPath);
+});
+
+ipcMain.handle("app:ppt-build-data", async (_event, payload) => {
+  const { buildPptData } = require("./ppt-forger-data");
+  return buildPptData(payload);
+});
+
+ipcMain.handle("app:generate-ppt", async (_event, payload) => {
+  const { generatePpt } = require("./ppt-forger");
+  const templatePath = payload?.templatePath;
+  const outputPath = payload?.outputPath;
+  const data = payload?.data;
+
+  if (!templatePath) throw new Error("PPT 템플릿을 선택하세요.");
+  if (!outputPath) throw new Error("PPT 저장 파일을 선택하세요.");
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error("치환 데이터는 JSON 객체여야 합니다.");
+  }
+
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  const resultPath = await generatePpt(templatePath, outputPath, data);
+  return {
+    outputPath: resultPath,
+    replacedKeys: Object.keys(data),
+  };
 });
 
 ipcMain.handle("app:capture-table", (_event, payload) =>

@@ -20,77 +20,17 @@ const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
 const PAGE_INFO = {
-  session: [
-    {
-      type: "steps",
-      title: "사용 방법",
-      items: [
-        "Chrome을 엽니다.",
-        "Cretop에 직접 로그인합니다.",
-        "필요한 화면으로 이동합니다.",
-        "앱에서 로그인 완료를 누릅니다.",
-      ],
-    },
-    {
-      type: "details",
-      title: "기능 경계",
-      items: [
-        ["입력", "직접 로그인한 Chrome 세션"],
-        ["작업", "세션 연결 상태를 표시합니다."],
-        ["제외", "로그인 자동화와 접근 제한 우회"],
-      ],
-    },
-    {
-      type: "details",
-      title: "Chrome 종료",
-      items: [
-        ["실행된 Chrome 종료", "이 앱에서 연 Chrome만 닫습니다."],
-        ["전체 Chrome 종료", "따로 연 Chrome도 닫을 수 있습니다."],
-      ],
-    },
-  ],
-  capture: [
-    {
-      type: "details",
-      title: "기능 경계",
-      items: [
-        ["입력", "현재 화면의 조건검색 테이블"],
-        ["작업", "테이블을 CSV로 저장합니다."],
-        ["제외", "조건검색 실행, 후보 선택, 로그인 자동화"],
-      ],
-    },
-    {
-      type: "steps",
-      title: "사용 방법",
-      items: ["조건검색 결과 화면을 엽니다.", "저장 파일과 페이지 수를 확인합니다.", "저장 버튼을 누릅니다."],
-    },
-  ],
+  session: [],
+  capture: [],
   ppt: [
     {
-      type: "details",
-      title: "기능 경계",
-      items: [
-        ["입력", "종목코드, Model.xlsx, Gemini API 키, PPTX 템플릿"],
-        ["작업", "FnGuide/KIND와 Model.xlsx에서 데이터를 만들고 Gemini 문구와 함께 {{key}} 값을 바꿔 저장합니다."],
-        ["제외", "기본 템플릿 번들"],
-      ],
-    },
-    {
       type: "steps",
+      collapsed: true,
       title: "사용 방법",
-      items: ["종목코드와 발행 조건을 입력합니다.", "Model.xlsx와 PPTX 템플릿을 선택합니다.", "필요하면 AI 문구 생성을 누릅니다.", "데이터 만들기 후 PPT 생성을 누릅니다."],
+      items: ["기본 입력에서 종목코드, 발행 조건, Model.xlsx, PPT 템플릿, 저장 파일을 채웁니다.", "필요하면 AI 문구 생성을 누르고 문구를 직접 다듬습니다.", "데이터 만들기를 눌러 회사/엑셀 조회 결과와 주주 목록을 확인합니다.", "검토 후 PPT 생성을 누릅니다."],
     },
   ],
   updates: [
-    {
-      type: "details",
-      title: "기능 경계",
-      items: [
-        ["입력", "현재 앱 버전과 GitHub 릴리스"],
-        ["작업", "새 버전을 내려받아 재시작 설치합니다."],
-        ["제외", "개발 실행 상태의 실제 설치"],
-      ],
-    },
     {
       type: "steps",
       title: "사용 방법",
@@ -113,11 +53,17 @@ function appendText(parent, text) {
 }
 
 function createInfoSection(section) {
-  const element = document.createElement("section");
-  const heading = document.createElement("h3");
+  const element = document.createElement(section.collapsed ? "details" : "section");
   element.className = `page-section ${section.type === "steps" ? "guide-section" : "boundary-section"}`;
-  heading.textContent = section.title;
-  element.append(heading);
+  if (section.collapsed) {
+    const summary = document.createElement("summary");
+    summary.textContent = section.title;
+    element.append(summary);
+  } else {
+    const heading = document.createElement("h3");
+    heading.textContent = section.title;
+    element.append(heading);
+  }
 
   if (section.type === "steps") {
     const list = document.createElement("ol");
@@ -171,11 +117,8 @@ function addLog(message) {
   logs.scrollTop = logs.scrollHeight;
 }
 
-function setLogin(message, done = false) {
+function setLogin(_message, done = false) {
   state.loginDone = done;
-  setText("#loginText", message);
-  $("#loginPill").classList.toggle("connected", done);
-  $("#loginPill").classList.toggle("disconnected", !done);
 }
 
 function showView(name) {
@@ -188,6 +131,15 @@ function showView(name) {
 function setPptSettingsOpen(open) {
   $("#pptSettingsOverlay").classList.toggle("hidden", !open);
   $("#pptSettingsOverlay").setAttribute("aria-hidden", String(!open));
+}
+
+function showPptTab(name) {
+  $$(".ppt-tab").forEach((button) => {
+    button.classList.toggle("active", button.dataset.pptTab === name);
+  });
+  $$(".ppt-tab-panel").forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.pptPanel === name);
+  });
 }
 
 function setUpdateStatus(payload) {
@@ -587,6 +539,7 @@ async function buildPptData() {
     state.pptData = result.data;
     $("#pptData").value = JSON.stringify(result.data, null, 2);
     renderPptPreview(result);
+    showPptTab("review");
     addLog(`PPT 치환 데이터를 만들었습니다: ${result.data.corp_name || inputs.stock_code}`);
     if (excelData.missingFinancials?.length) {
       addLog(`Model.xlsx에서 찾지 못한 재무 항목: ${excelData.missingFinancials.join(", ")}`);
@@ -623,6 +576,7 @@ async function generateGeminiText() {
       },
     });
     applyAiText(result.aiText);
+    showPptTab("copy");
     addLog("Gemini 문구를 생성하고 입력칸에 반영했습니다.");
     await buildPptData();
     return result.aiText;
@@ -695,6 +649,10 @@ async function init() {
 
   $$(".nav-button").forEach((button) => {
     button.addEventListener("click", () => showView(button.dataset.view));
+  });
+
+  $$(".ppt-tab").forEach((button) => {
+    button.addEventListener("click", () => showPptTab(button.dataset.pptTab));
   });
 
   $("#openChrome").addEventListener("click", async () => {

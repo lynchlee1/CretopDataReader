@@ -1,483 +1,985 @@
 <!doctype html>
 <html lang="ko">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Maxawon</title>
-    <link rel="stylesheet" href="./styles.css" />
-  </head>
-  <body>
-    <div class="app-shell">
-      <aside class="sidebar">
-        <div class="brand">
-          <span class="brand-mark">C</span>
-          <div>
-            <strong>Maxawon</strong>
-            <small>Data Reader</small>
-          </div>
-        </div>
-
-        <nav class="nav">
-          <div class="nav-group">
-            <button class="nav-button nav-parent active" data-view="session">Cretop</button>
-            <button class="nav-button nav-child" data-view="capture">Cretop 검색결과 저장하기</button>
-          </div>
-          <div class="nav-group">
-            <button class="nav-button nav-parent" data-view="ppt-forger">PPT Forger</button>
-          </div>
-          <button class="nav-button" data-view="updates">앱 최신버전 설치하기</button>
-        </nav>
-
-        <div id="appVersion" class="app-version"></div>
-      </aside>
-
-      <main class="main">
-        <header class="topbar">
-          <div>
-            <p class="eyebrow">Desktop Console</p>
-            <h1>Maxawon</h1>
-          </div>
-          <div class="top-status">
-            <span id="loginPill" class="connection-pill disconnected">
-              <span class="status-dot"></span>
-              <span id="loginText">미연결</span>
-            </span>
-          </div>
-        </header>
-
-        <section id="session" class="view active">
-          <div class="panel page-panel">
-            <div class="panel-heading">
-              <div>
-                <p class="eyebrow">Chrome Session</p>
-                <h2>Cretop</h2>
-              </div>
-              <div class="panel-actions">
-                <button id="openChrome" class="primary">Chrome 열기</button>
-                <button id="loginDone" class="primary">로그인 완료</button>
-                <button id="closeAppChrome" class="danger">실행된 Chrome 종료</button>
-                <button id="closeAllChrome" class="danger">전체 Chrome 종료</button>
-              </div>
-            </div>
-
-            <div class="page-body">
-              <div data-info="session"></div>
-            </div>
-          </div>
-        </section>
-
-        <section id="capture" class="view">
-          <div class="panel page-panel">
-            <div class="panel-heading">
-              <div>
-                <p class="eyebrow">Condition Search Export</p>
-                <h2>Cretop 검색결과 저장하기</h2>
-              </div>
-              <div class="panel-actions">
-                <button id="captureTable" class="primary">현재 조건검색 테이블 저장</button>
-              </div>
-            </div>
-
-            <div class="page-body">
-              <section class="page-section control-section">
-                <h3>실행 설정</h3>
-                <div class="form-grid">
-                  <label>
-                    <span>최대 페이지</span>
-                    <input id="maxPages" type="number" min="1" placeholder="비우면 끝까지" />
-                  </label>
-                  <label class="file-field">
-                    <span>저장 파일</span>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Maxawon</title>
+        <link rel="stylesheet" href="./styles.css" />
+    </head>
+    <body>
+        <div class="app-shell">
+            <aside class="sidebar">
+                <div class="brand">
+                    <span class="brand-mark">M</span>
                     <div>
-                      <input id="captureOutput" type="text" readonly />
-                      <button id="pickOutput" class="secondary">변경</button>
+                        <strong>Maxawon</strong>
+                        <small>업무 자동화 툴 맥사원</small>
                     </div>
-                  </label>
                 </div>
-              </section>
 
-              <div data-info="capture"></div>
-            </div>
-          </div>
-        </section>
-
-        <section id="ppt-forger" class="view">
-          <div class="panel page-panel">
-            <div class="panel-heading">
-              <div>
-                <p class="eyebrow">PPT Template Export</p>
-                <h2>PPT Forger</h2>
-              </div>
-              <div class="panel-actions">
-                <button id="openPptSettings" class="secondary">설정</button>
-                <button id="generateGeminiText" class="secondary">AI 문구 생성</button>
-                <button id="buildPptData" class="secondary">데이터 만들기</button>
-                <button id="generatePpt" class="primary">PPT 생성</button>
-              </div>
-            </div>
-
-            <div class="page-body">
-              <section class="page-section control-section">
-                <h3>원본 데이터</h3>
-                <div class="form-grid ppt-form-grid">
-                  <label>
-                    <span>종목코드</span>
-                    <input id="pptStockCode" type="text" inputmode="numeric" maxlength="6" placeholder="예: 005930" />
-                  </label>
-                  <label>
-                    <span>메자닌 종류</span>
-                    <input id="pptMezzType" type="text" placeholder="예: 전환사채(CB)" />
-                  </label>
-                  <label>
-                    <span>투자금액</span>
-                    <input id="pptInvestmentAmt" type="text" placeholder="예: 100" />
-                  </label>
-                  <label>
-                    <span>발행금액</span>
-                    <input id="pptIssueAmt" type="text" placeholder="예: 200" />
-                  </label>
-                  <label>
-                    <span>Call 비율(%)</span>
-                    <input id="pptCallPercent" type="number" min="0" max="100" placeholder="예: 30" />
-                  </label>
-                  <label>
-                    <span>리픽싱 비율(%)</span>
-                    <input id="pptRefixingPercent" type="number" min="0" max="100" placeholder="예: 70" />
-                  </label>
-                  <label>
-                    <span>기발행 메자닌 주식수</span>
-                    <input id="pptPriorMezzanineShares" type="text" placeholder="없으면 비워둠" />
-                  </label>
-                  <label>
-                    <span>표시 주주 수</span>
-                    <input id="pptMaxShareholders" type="number" min="1" value="10" />
-                  </label>
-                  <label class="checkbox-field">
-                    <span>자사주 EB</span>
-                    <input id="pptTreasuryEb" type="checkbox" />
-                  </label>
-                  <label class="file-field">
-                    <span>Model.xlsx</span>
-                    <div>
-                      <input id="pptExcel" type="text" readonly />
-                      <button id="pickPptExcel" class="secondary">선택</button>
+                <nav class="nav">
+                    <div class="nav-group">
+                        <div class="nav-section-label">Cretop</div>
+                        <button
+                            class="nav-button nav-task active"
+                            data-view="session"
+                        >
+                            Cretop 로그인 연결하기
+                        </button>
+                        <button class="nav-button nav-task" data-view="capture">
+                            Cretop 검색결과 저장하기
+                        </button>
                     </div>
-                  </label>
-                  <label class="file-field">
-                    <span>PPT 템플릿</span>
-                    <div>
-                      <input id="pptTemplate" type="text" readonly />
-                      <button id="pickPptTemplate" class="secondary">선택</button>
+                    <div class="nav-group">
+                        <button
+                            class="nav-button nav-parent"
+                            data-view="ppt-forger"
+                        >
+                            PPT Forger
+                        </button>
                     </div>
-                  </label>
-                  <label class="file-field">
-                    <span>저장 파일</span>
-                    <div>
-                      <input id="pptOutput" type="text" readonly />
-                      <button id="pickPptOutput" class="secondary">변경</button>
+                    <button class="nav-button" data-view="updates">
+                        업데이트 조회
+                    </button>
+                </nav>
+
+                <div id="appVersion" class="app-version"></div>
+            </aside>
+
+            <main class="main">
+                <section id="session" class="view active">
+                    <div class="panel page-panel">
+                        <div class="panel-heading">
+                            <div>
+                                <p class="eyebrow">Chrome Session</p>
+                                <h2>Cretop 로그인 연결하기</h2>
+                            </div>
+                            <div class="panel-actions">
+                                <button id="openChrome" class="primary">
+                                    Chrome 열기
+                                </button>
+                                <button id="loginDone" class="primary">
+                                    로그인 완료
+                                </button>
+                                <button id="closeAppChrome" class="danger">
+                                    실행된 Chrome 종료
+                                </button>
+                                <button id="closeAllChrome" class="danger">
+                                    전체 Chrome 종료
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="page-body">
+                            <div class="workflow-overview">
+                                <div class="workflow-overview-item">
+                                    <span>1</span>
+                                    <div>
+                                        <strong>Chrome 열기</strong>
+                                        <small
+                                            >Chrome 열기 버튼을
+                                            클릭합니다.</small
+                                        >
+                                    </div>
+                                </div>
+                                <div class="workflow-overview-item">
+                                    <span>2</span>
+                                    <div>
+                                        <strong>직접 로그인</strong>
+                                        <small>Cretop에 로그인합니다.</small>
+                                    </div>
+                                </div>
+                                <div class="workflow-overview-item">
+                                    <span>3</span>
+                                    <div>
+                                        <strong>완료 확인</strong>
+                                        <small
+                                            >로그인 완료 버튼을
+                                            클릭합니다.</small
+                                        >
+                                    </div>
+                                </div>
+                                <div class="workflow-overview-item">
+                                    <span>4</span>
+                                    <div>
+                                        <strong>작업 이동</strong>
+                                        <small
+                                            >Cretop 내에서 원하는 화면으로
+                                            이동합니다.</small
+                                        >
+                                    </div>
+                                </div>
+                                <div class="workflow-overview-item">
+                                    <span>5</span>
+                                    <div>
+                                        <strong>Chrome 종료</strong>
+                                        <small
+                                            >작업이 끝나면 Chrome 종료 버튼을
+                                            누릅니다.</small
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div data-info="session"></div>
+                        </div>
                     </div>
-                  </label>
-                </div>
-              </section>
+                </section>
 
-              <section class="page-section control-section">
-                <h3>주주 편집</h3>
-                <div class="table-wrap">
-                  <table class="data-table">
-                    <thead>
-                      <tr>
-                        <th>선택</th>
-                        <th>주주명</th>
-                        <th>관계</th>
-                        <th>주식수</th>
-                        <th>지분율</th>
-                        <th>Call</th>
-                        <th>정렬</th>
-                      </tr>
-                    </thead>
-                    <tbody id="shareholderRows">
-                      <tr>
-                        <td colspan="7">종목코드를 입력하고 데이터를 만들면 주주 목록이 표시됩니다.</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </section>
+                <section id="capture" class="view">
+                    <div class="panel page-panel">
+                        <div class="panel-heading">
+                            <div>
+                                <p class="eyebrow">Condition Search Export</p>
+                                <h2>Cretop 검색결과 저장하기</h2>
+                            </div>
+                            <div class="panel-actions">
+                                <button id="captureTable" class="primary">
+                                    현재 조건검색 테이블 저장
+                                </button>
+                            </div>
+                        </div>
 
-              <section class="page-section control-section">
-                <h3>AI 문구</h3>
-                <div class="form-grid ppt-form-grid">
-                  <label>
-                    <span>투자포인트 1 제목</span>
-                    <input id="investmentTextTitle1" type="text" />
-                  </label>
-                  <label>
-                    <span>투자포인트 1 내용 A</span>
-                    <input id="investmentTextContents11" type="text" />
-                  </label>
-                  <label>
-                    <span>투자포인트 1 내용 B</span>
-                    <input id="investmentTextContents12" type="text" />
-                  </label>
-                  <label>
-                    <span>투자포인트 2 제목</span>
-                    <input id="investmentTextTitle2" type="text" />
-                  </label>
-                  <label>
-                    <span>투자포인트 2 내용 A</span>
-                    <input id="investmentTextContents21" type="text" />
-                  </label>
-                  <label>
-                    <span>투자포인트 2 내용 B</span>
-                    <input id="investmentTextContents22" type="text" />
-                  </label>
-                  <label>
-                    <span>투자포인트 3 제목</span>
-                    <input id="investmentTextTitle3" type="text" />
-                  </label>
-                  <label>
-                    <span>투자포인트 3 내용 A</span>
-                    <input id="investmentTextContents31" type="text" />
-                  </label>
-                  <label>
-                    <span>투자포인트 3 내용 B</span>
-                    <input id="investmentTextContents32" type="text" />
-                  </label>
-                  <label>
-                    <span>주가 포인트 1</span>
-                    <input id="priceTextTitle1" type="text" />
-                  </label>
-                  <label>
-                    <span>주가 포인트 2</span>
-                    <input id="priceTextTitle2" type="text" />
-                  </label>
-                  <label>
-                    <span>리스크 1 제목</span>
-                    <input id="riskTextTitle1" type="text" />
-                  </label>
-                  <label>
-                    <span>리스크 1 내용</span>
-                    <input id="riskTextContents11" type="text" />
-                  </label>
-                  <label>
-                    <span>리스크 2 제목</span>
-                    <input id="riskTextTitle2" type="text" />
-                  </label>
-                  <label>
-                    <span>리스크 2 내용</span>
-                    <input id="riskTextContents21" type="text" />
-                  </label>
-                </div>
-              </section>
+                        <div class="page-body">
+                            <div class="workflow-overview">
+                                <div class="workflow-overview-item">
+                                    <span>1</span>
+                                    <div>
+                                        <strong>로그인 연결</strong>
+                                        <small
+                                            >Cretop 로그인 후 앱에서 완료를
+                                            확인합니다.</small
+                                        >
+                                    </div>
+                                </div>
+                                <div class="workflow-overview-item">
+                                    <span>2</span>
+                                    <div>
+                                        <strong>조건검색</strong>
+                                        <small
+                                            >Cretop에서 저장할 검색결과 화면을
+                                            엽니다.</small
+                                        >
+                                    </div>
+                                </div>
+                                <div class="workflow-overview-item">
+                                    <span>3</span>
+                                    <div>
+                                        <strong>저장 설정</strong>
+                                        <small
+                                            >저장 파일과 최대 페이지를
+                                            확인합니다.</small
+                                        >
+                                    </div>
+                                </div>
+                                <div class="workflow-overview-item">
+                                    <span>4</span>
+                                    <div>
+                                        <strong>CSV 저장</strong>
+                                        <small
+                                            >현재 조건검색 테이블을 CSV로
+                                            저장합니다.</small
+                                        >
+                                    </div>
+                                </div>
+                            </div>
 
-              <section class="page-section control-section">
-                <h3>치환 데이터 JSON</h3>
-                <label class="json-field">
-                  <span>데이터 만들기 후 필요하면 직접 수정할 수 있습니다.</span>
-                  <textarea id="pptData" spellcheck="false">{
+                            <section class="page-section control-section">
+                                <h3>실행 설정</h3>
+                                <div class="form-grid">
+                                    <label>
+                                        <span>최대 페이지</span>
+                                        <input
+                                            id="maxPages"
+                                            type="number"
+                                            min="1"
+                                            placeholder="비우면 끝까지"
+                                        />
+                                    </label>
+                                    <label class="file-field">
+                                        <span>저장 파일</span>
+                                        <div>
+                                            <input
+                                                id="captureOutput"
+                                                type="text"
+                                                readonly
+                                            />
+                                            <button
+                                                id="pickOutput"
+                                                class="secondary"
+                                            >
+                                                변경
+                                            </button>
+                                        </div>
+                                    </label>
+                                </div>
+                            </section>
+
+                            <div data-info="capture"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="ppt-forger" class="view">
+                    <div class="panel page-panel">
+                        <div class="panel-heading">
+                            <div>
+                                <p class="eyebrow">PPT Template Export</p>
+                                <h2>PPT Forger</h2>
+                            </div>
+                            <div class="panel-actions">
+                                <button id="openPptSettings" class="secondary">
+                                    설정
+                                </button>
+                                <button
+                                    id="generateGeminiText"
+                                    class="secondary"
+                                >
+                                    AI 문구 생성
+                                </button>
+                                <button id="buildPptData" class="secondary">
+                                    데이터 만들기
+                                </button>
+                                <button id="generatePpt" class="primary">
+                                    PPT 생성
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="page-body">
+                            <section class="ppt-workbench">
+                                <div class="workflow-overview">
+                                    <div class="workflow-overview-item">
+                                        <span>1</span>
+                                        <div>
+                                            <strong>기본 입력</strong>
+                                            <small
+                                                >종목코드와 발행 조건, 파일을
+                                                선택합니다.</small
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="workflow-overview-item">
+                                        <span>2</span>
+                                        <div>
+                                            <strong>문구 생성</strong>
+                                            <small
+                                                >필요하면 AI 문구를 생성하고
+                                                다듬습니다.</small
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="workflow-overview-item">
+                                        <span>3</span>
+                                        <div>
+                                            <strong>데이터 만들기</strong>
+                                            <small
+                                                >회사와 엑셀 조회 결과를
+                                                확인합니다.</small
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="workflow-overview-item">
+                                        <span>4</span>
+                                        <div>
+                                            <strong>PPT 생성</strong>
+                                            <small
+                                                >검토한 데이터로 PPT 파일을
+                                                저장합니다.</small
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="ppt-tabs"
+                                    role="tablist"
+                                    aria-label="PPT Forger 작업 영역"
+                                >
+                                    <button
+                                        class="ppt-tab active"
+                                        type="button"
+                                        data-ppt-tab="source"
+                                    >
+                                        기본 입력
+                                    </button>
+                                    <button
+                                        class="ppt-tab"
+                                        type="button"
+                                        data-ppt-tab="shareholders"
+                                    >
+                                        주주
+                                    </button>
+                                    <button
+                                        class="ppt-tab"
+                                        type="button"
+                                        data-ppt-tab="copy"
+                                    >
+                                        AI 문구
+                                    </button>
+                                    <button
+                                        class="ppt-tab"
+                                        type="button"
+                                        data-ppt-tab="review"
+                                    >
+                                        검토
+                                    </button>
+                                </div>
+
+                                <section
+                                    class="ppt-tab-panel active"
+                                    data-ppt-panel="source"
+                                >
+                                    <div class="section-heading">
+                                        <div>
+                                            <h3>기본 입력</h3>
+                                            <p>
+                                                먼저 필요한 값과 파일만 채운 뒤
+                                                데이터 만들기를 실행합니다.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="form-grid ppt-form-grid">
+                                        <label>
+                                            <span>종목코드</span>
+                                            <input
+                                                id="pptStockCode"
+                                                type="text"
+                                                inputmode="numeric"
+                                                maxlength="6"
+                                                placeholder="예: 005930"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>메자닌 종류</span>
+                                            <input
+                                                id="pptMezzType"
+                                                type="text"
+                                                placeholder="예: 전환사채(CB)"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>투자금액</span>
+                                            <input
+                                                id="pptInvestmentAmt"
+                                                type="text"
+                                                placeholder="예: 100"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>발행금액</span>
+                                            <input
+                                                id="pptIssueAmt"
+                                                type="text"
+                                                placeholder="예: 200"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>Call 비율(%)</span>
+                                            <input
+                                                id="pptCallPercent"
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                placeholder="예: 30"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>리픽싱 비율(%)</span>
+                                            <input
+                                                id="pptRefixingPercent"
+                                                type="number"
+                                                min="0"
+                                                max="100"
+                                                placeholder="예: 70"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>기발행 메자닌 주식수</span>
+                                            <input
+                                                id="pptPriorMezzanineShares"
+                                                type="text"
+                                                placeholder="없으면 비워둠"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>표시 주주 수</span>
+                                            <input
+                                                id="pptMaxShareholders"
+                                                type="number"
+                                                min="1"
+                                                value="10"
+                                            />
+                                        </label>
+                                        <label class="checkbox-field">
+                                            <span>자사주 EB</span>
+                                            <input
+                                                id="pptTreasuryEb"
+                                                type="checkbox"
+                                            />
+                                        </label>
+                                        <label class="file-field">
+                                            <span>Model.xlsx</span>
+                                            <div>
+                                                <input
+                                                    id="pptExcel"
+                                                    type="text"
+                                                    readonly
+                                                />
+                                                <button
+                                                    id="pickPptExcel"
+                                                    class="secondary"
+                                                >
+                                                    선택
+                                                </button>
+                                            </div>
+                                        </label>
+                                        <label class="file-field">
+                                            <span>PPT 템플릿</span>
+                                            <div>
+                                                <input
+                                                    id="pptTemplate"
+                                                    type="text"
+                                                    readonly
+                                                />
+                                                <button
+                                                    id="pickPptTemplate"
+                                                    class="secondary"
+                                                >
+                                                    선택
+                                                </button>
+                                            </div>
+                                        </label>
+                                        <label class="file-field">
+                                            <span>저장 파일</span>
+                                            <div>
+                                                <input
+                                                    id="pptOutput"
+                                                    type="text"
+                                                    readonly
+                                                />
+                                                <button
+                                                    id="pickPptOutput"
+                                                    class="secondary"
+                                                >
+                                                    변경
+                                                </button>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </section>
+
+                                <section
+                                    class="ppt-tab-panel"
+                                    data-ppt-panel="shareholders"
+                                >
+                                    <div class="section-heading">
+                                        <div>
+                                            <h3>주주 편집</h3>
+                                            <p>
+                                                데이터 생성 후 필요한 주주만
+                                                선택하고 순서를 조정합니다.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="table-wrap">
+                                        <table class="data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>선택</th>
+                                                    <th>주주명</th>
+                                                    <th>관계</th>
+                                                    <th>주식수</th>
+                                                    <th>지분율</th>
+                                                    <th>Call</th>
+                                                    <th>정렬</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="shareholderRows">
+                                                <tr>
+                                                    <td colspan="7">
+                                                        종목코드를 입력하고
+                                                        데이터를 만들면 주주
+                                                        목록이 표시됩니다.
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </section>
+
+                                <section
+                                    class="ppt-tab-panel"
+                                    data-ppt-panel="copy"
+                                >
+                                    <div class="section-heading">
+                                        <div>
+                                            <h3>AI 문구</h3>
+                                            <p>
+                                                AI 생성 후 필요한 문장만 직접
+                                                다듬습니다.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="form-grid ppt-form-grid">
+                                        <label>
+                                            <span>투자포인트 1 제목</span>
+                                            <input
+                                                id="investmentTextTitle1"
+                                                type="text"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>투자포인트 1 내용 A</span>
+                                            <input
+                                                id="investmentTextContents11"
+                                                type="text"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>투자포인트 1 내용 B</span>
+                                            <input
+                                                id="investmentTextContents12"
+                                                type="text"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>투자포인트 2 제목</span>
+                                            <input
+                                                id="investmentTextTitle2"
+                                                type="text"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>투자포인트 2 내용 A</span>
+                                            <input
+                                                id="investmentTextContents21"
+                                                type="text"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>투자포인트 2 내용 B</span>
+                                            <input
+                                                id="investmentTextContents22"
+                                                type="text"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>투자포인트 3 제목</span>
+                                            <input
+                                                id="investmentTextTitle3"
+                                                type="text"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>투자포인트 3 내용 A</span>
+                                            <input
+                                                id="investmentTextContents31"
+                                                type="text"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>투자포인트 3 내용 B</span>
+                                            <input
+                                                id="investmentTextContents32"
+                                                type="text"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>주가 포인트 1</span>
+                                            <input
+                                                id="priceTextTitle1"
+                                                type="text"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>주가 포인트 2</span>
+                                            <input
+                                                id="priceTextTitle2"
+                                                type="text"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>리스크 1 제목</span>
+                                            <input
+                                                id="riskTextTitle1"
+                                                type="text"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>리스크 1 내용</span>
+                                            <input
+                                                id="riskTextContents11"
+                                                type="text"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>리스크 2 제목</span>
+                                            <input
+                                                id="riskTextTitle2"
+                                                type="text"
+                                            />
+                                        </label>
+                                        <label>
+                                            <span>리스크 2 내용</span>
+                                            <input
+                                                id="riskTextContents21"
+                                                type="text"
+                                            />
+                                        </label>
+                                    </div>
+                                </section>
+
+                                <section
+                                    class="ppt-tab-panel"
+                                    data-ppt-panel="review"
+                                >
+                                    <div class="section-heading">
+                                        <div>
+                                            <h3>결과 검토</h3>
+                                            <p>
+                                                생성된 요약과 치환 데이터를
+                                                마지막으로 확인합니다.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="review-grid">
+                                        <section class="review-block">
+                                            <h4>핵심 요약</h4>
+                                            <dl
+                                                id="pptSummaryPreview"
+                                                class="detail-list"
+                                            >
+                                                <div>
+                                                    <dt>회사</dt>
+                                                    <dd>
+                                                        데이터 만들기 후
+                                                        표시됩니다.
+                                                    </dd>
+                                                </div>
+                                            </dl>
+                                        </section>
+                                        <section class="review-block">
+                                            <h4>회사 상세</h4>
+                                            <dl
+                                                id="companyDetailPreview"
+                                                class="detail-list"
+                                            >
+                                                <div>
+                                                    <dt>상세</dt>
+                                                    <dd>
+                                                        데이터 만들기 후
+                                                        표시됩니다.
+                                                    </dd>
+                                                </div>
+                                            </dl>
+                                        </section>
+                                        <section class="review-block wide">
+                                            <h4>지분율 미리보기</h4>
+                                            <div class="table-wrap">
+                                                <table
+                                                    class="data-table ownership-preview-table"
+                                                >
+                                                    <thead
+                                                        id="ownershipPreviewHead"
+                                                    >
+                                                        <tr>
+                                                            <th>구분</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody
+                                                        id="ownershipPreviewRows"
+                                                    >
+                                                        <tr>
+                                                            <td>
+                                                                데이터 만들기 후
+                                                                표시됩니다.
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </section>
+                                        <section class="review-block">
+                                            <h4>주주구분 현황</h4>
+                                            <div class="table-wrap">
+                                                <table
+                                                    class="data-table classification-preview-table"
+                                                >
+                                                    <thead>
+                                                        <tr>
+                                                            <th>주주구분</th>
+                                                            <th>보통주</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody
+                                                        id="classificationPreviewRows"
+                                                    >
+                                                        <tr>
+                                                            <td colspan="2">
+                                                                데이터 만들기 후
+                                                                표시됩니다.
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </section>
+                                        <section class="review-block wide">
+                                            <h4>치환 데이터 JSON</h4>
+                                            <label class="json-field">
+                                                <span
+                                                    >데이터 만들기 후 필요하면
+                                                    직접 수정할 수
+                                                    있습니다.</span
+                                                >
+                                                <textarea
+                                                    id="pptData"
+                                                    spellcheck="false"
+                                                >
+{
   "corp_name": "",
   "call_percent": "",
   "refixing_percent": ""
-}</textarea>
-                </label>
-              </section>
+}</textarea
+                                                >
+                                            </label>
+                                        </section>
+                                    </div>
+                                </section>
+                            </section>
 
-              <section class="page-section control-section">
-                <h3>결과 미리보기</h3>
-                <dl id="pptSummaryPreview" class="detail-list">
-                  <div>
-                    <dt>회사</dt>
-                    <dd>데이터 만들기 후 표시됩니다.</dd>
-                  </div>
-                </dl>
-                <div class="table-wrap">
-                  <table class="data-table ownership-preview-table">
-                    <thead id="ownershipPreviewHead">
-                      <tr>
-                        <th>구분</th>
-                      </tr>
-                    </thead>
-                    <tbody id="ownershipPreviewRows">
-                      <tr>
-                        <td>데이터 만들기 후 표시됩니다.</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <h3>회사 상세</h3>
-                <dl id="companyDetailPreview" class="detail-list">
-                  <div>
-                    <dt>상세</dt>
-                    <dd>데이터 만들기 후 표시됩니다.</dd>
-                  </div>
-                </dl>
-                <h3>주주구분 현황</h3>
-                <div class="table-wrap">
-                  <table class="data-table classification-preview-table">
-                    <thead>
-                      <tr>
-                        <th>주주구분</th>
-                        <th>보통주</th>
-                      </tr>
-                    </thead>
-                    <tbody id="classificationPreviewRows">
-                      <tr>
-                        <td colspan="2">데이터 만들기 후 표시됩니다.</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </section>
+                            <div data-info="ppt"></div>
+                        </div>
+                    </div>
+                </section>
 
-              <div data-info="ppt"></div>
-            </div>
-          </div>
-        </section>
+                <section id="updates" class="view">
+                    <div class="panel page-panel">
+                        <div class="panel-heading">
+                            <div>
+                                <p class="eyebrow">App Update</p>
+                                <h2>업데이트 조회</h2>
+                            </div>
+                            <div class="panel-actions">
+                                <button id="checkUpdates" class="primary">
+                                    새 버전 확인
+                                </button>
+                                <button
+                                    id="downloadUpdate"
+                                    class="secondary"
+                                    disabled
+                                >
+                                    업데이트 다운로드
+                                </button>
+                                <button
+                                    id="installUpdate"
+                                    class="primary"
+                                    disabled
+                                >
+                                    재시작 후 설치
+                                </button>
+                            </div>
+                        </div>
 
-        <section id="updates" class="view">
-          <div class="panel page-panel">
-            <div class="panel-heading">
-              <div>
-                <p class="eyebrow">App Update</p>
-                <h2>앱 최신버전 설치하기</h2>
-              </div>
-              <div class="panel-actions">
-                <button id="checkUpdates" class="primary">새 버전 확인</button>
-                <button id="downloadUpdate" class="secondary" disabled>업데이트 다운로드</button>
-                <button id="installUpdate" class="primary" disabled>재시작 후 설치</button>
-              </div>
-            </div>
+                        <div class="page-body">
+                            <section class="page-section status-section">
+                                <h3>업데이트 상태</h3>
+                                <dl class="detail-list">
+                                    <div>
+                                        <dt>현재 버전</dt>
+                                        <dd id="currentVersion">확인 중</dd>
+                                    </div>
+                                    <div>
+                                        <dt>업데이트 기준</dt>
+                                        <dd id="updateFeed">확인 중</dd>
+                                    </div>
+                                    <div>
+                                        <dt>상태</dt>
+                                        <dd id="updateStatus">대기 중</dd>
+                                    </div>
+                                </dl>
+                            </section>
 
-            <div class="page-body">
-              <section class="page-section status-section">
-                <h3>업데이트 상태</h3>
-                <dl class="detail-list">
-                  <div>
-                    <dt>현재 버전</dt>
-                    <dd id="currentVersion">확인 중</dd>
-                  </div>
-                  <div>
-                    <dt>업데이트 기준</dt>
-                    <dd id="updateFeed">확인 중</dd>
-                  </div>
-                  <div>
-                    <dt>상태</dt>
-                    <dd id="updateStatus">대기 중</dd>
-                  </div>
-                </dl>
-              </section>
+                            <div data-info="updates"></div>
+                        </div>
+                    </div>
+                </section>
 
-              <div data-info="updates"></div>
-            </div>
-          </div>
-        </section>
-
-        <section class="log-panel">
-          <div class="panel-heading compact">
-            <h2>활동 로그</h2>
-            <button id="clearLog" class="ghost">지우기</button>
-          </div>
-          <ol id="logs" class="logs"></ol>
-        </section>
-      </main>
-    </div>
-
-    <div id="pptSettingsOverlay" class="modal-overlay hidden" aria-hidden="true">
-      <section class="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="pptSettingsTitle">
-        <div class="panel-heading">
-          <div>
-            <p class="eyebrow">PPT Forger</p>
-            <h2 id="pptSettingsTitle">설정</h2>
-          </div>
-          <div class="panel-actions">
-            <button id="saveGeminiSettings" class="primary">저장</button>
-            <button id="closePptSettings" class="secondary">닫기</button>
-          </div>
+                <section class="log-panel">
+                    <div class="panel-heading compact">
+                        <h2>활동 로그</h2>
+                        <button id="clearLog" class="ghost">지우기</button>
+                    </div>
+                    <ol id="logs" class="logs"></ol>
+                </section>
+            </main>
         </div>
 
-        <div class="settings-body">
-          <section class="page-section control-section">
-            <h3>파일 기본값</h3>
-            <div class="form-grid ppt-form-grid">
-              <label class="file-field json-field">
-                <span>템플릿 폴더</span>
-                <div>
-                  <input id="pptTemplateDir" type="text" readonly />
-                  <button id="pickPptTemplateDir" class="secondary">선택</button>
+        <div
+            id="pptSettingsOverlay"
+            class="modal-overlay hidden"
+            aria-hidden="true"
+        >
+            <section
+                class="settings-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="pptSettingsTitle"
+            >
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">PPT Forger</p>
+                        <h2 id="pptSettingsTitle">설정</h2>
+                    </div>
+                    <div class="panel-actions">
+                        <button id="saveGeminiSettings" class="primary">
+                            저장
+                        </button>
+                        <button id="closePptSettings" class="secondary">
+                            닫기
+                        </button>
+                    </div>
                 </div>
-              </label>
-            </div>
-          </section>
 
-          <section class="page-section control-section">
-            <h3>Gemini</h3>
-            <div class="form-grid ppt-form-grid">
-              <label class="file-field">
-                <span>Gemini API 키</span>
-                <div>
-                  <input id="geminiApiKey" type="password" placeholder="Google AI Studio API Key" />
+                <div class="settings-body">
+                    <section class="page-section control-section">
+                        <h3>파일 기본값</h3>
+                        <div class="form-grid ppt-form-grid">
+                            <label class="file-field json-field">
+                                <span>템플릿 폴더</span>
+                                <div>
+                                    <input
+                                        id="pptTemplateDir"
+                                        type="text"
+                                        readonly
+                                    />
+                                    <button
+                                        id="pickPptTemplateDir"
+                                        class="secondary"
+                                    >
+                                        선택
+                                    </button>
+                                </div>
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="page-section control-section">
+                        <h3>Gemini</h3>
+                        <div class="form-grid ppt-form-grid">
+                            <label class="file-field">
+                                <span>Gemini API 키</span>
+                                <div>
+                                    <input
+                                        id="geminiApiKey"
+                                        type="password"
+                                        placeholder="Google AI Studio API Key"
+                                    />
+                                </div>
+                            </label>
+                            <label>
+                                <span>투자포인트 모델</span>
+                                <input
+                                    id="geminiInvestmentModel"
+                                    type="text"
+                                    value="gemini-1.5-pro"
+                                />
+                            </label>
+                            <label>
+                                <span>보조 모델</span>
+                                <input
+                                    id="geminiFormattingModel"
+                                    type="text"
+                                    value="gemini-2.5-flash"
+                                />
+                            </label>
+                            <label class="checkbox-field">
+                                <span>Google Search Grounding</span>
+                                <input
+                                    id="geminiUseSearch"
+                                    type="checkbox"
+                                    checked
+                                />
+                            </label>
+                            <label class="checkbox-field">
+                                <span>투자포인트 생성</span>
+                                <input
+                                    id="generateInvestmentText"
+                                    type="checkbox"
+                                    checked
+                                />
+                            </label>
+                            <label class="checkbox-field">
+                                <span>주가 포인트 생성</span>
+                                <input
+                                    id="generatePriceText"
+                                    type="checkbox"
+                                    checked
+                                />
+                            </label>
+                            <label class="checkbox-field">
+                                <span>리스크 생성</span>
+                                <input
+                                    id="generateRiskText"
+                                    type="checkbox"
+                                    checked
+                                />
+                            </label>
+                        </div>
+                    </section>
+
+                    <section class="page-section control-section">
+                        <h3>프롬프트</h3>
+                        <div class="form-grid ppt-form-grid">
+                            <label class="json-field prompt-field">
+                                <span>투자포인트 시스템 프롬프트</span>
+                                <textarea
+                                    id="investmentSystemPrompt"
+                                    spellcheck="false"
+                                ></textarea>
+                            </label>
+                            <label class="json-field prompt-field">
+                                <span>투자포인트 추가 지침</span>
+                                <textarea
+                                    id="investmentCustomPrompt"
+                                    spellcheck="false"
+                                ></textarea>
+                            </label>
+                            <label class="json-field prompt-field">
+                                <span>주가 포인트 시스템 프롬프트</span>
+                                <textarea
+                                    id="priceSystemPrompt"
+                                    spellcheck="false"
+                                ></textarea>
+                            </label>
+                            <label class="json-field prompt-field">
+                                <span>주가 포인트 추가 지침</span>
+                                <textarea
+                                    id="priceCustomPrompt"
+                                    spellcheck="false"
+                                ></textarea>
+                            </label>
+                            <label class="json-field prompt-field">
+                                <span>리스크 시스템 프롬프트</span>
+                                <textarea
+                                    id="riskSystemPrompt"
+                                    spellcheck="false"
+                                ></textarea>
+                            </label>
+                            <label class="json-field prompt-field">
+                                <span>리스크 추가 지침</span>
+                                <textarea
+                                    id="riskCustomPrompt"
+                                    spellcheck="false"
+                                ></textarea>
+                            </label>
+                        </div>
+                    </section>
                 </div>
-              </label>
-              <label>
-                <span>투자포인트 모델</span>
-                <input id="geminiInvestmentModel" type="text" value="gemini-1.5-pro" />
-              </label>
-              <label>
-                <span>보조 모델</span>
-                <input id="geminiFormattingModel" type="text" value="gemini-2.5-flash" />
-              </label>
-              <label class="checkbox-field">
-                <span>Google Search Grounding</span>
-                <input id="geminiUseSearch" type="checkbox" checked />
-              </label>
-              <label class="checkbox-field">
-                <span>투자포인트 생성</span>
-                <input id="generateInvestmentText" type="checkbox" checked />
-              </label>
-              <label class="checkbox-field">
-                <span>주가 포인트 생성</span>
-                <input id="generatePriceText" type="checkbox" checked />
-              </label>
-              <label class="checkbox-field">
-                <span>리스크 생성</span>
-                <input id="generateRiskText" type="checkbox" checked />
-              </label>
-            </div>
-          </section>
-
-          <section class="page-section control-section">
-            <h3>프롬프트</h3>
-            <div class="form-grid ppt-form-grid">
-              <label class="json-field prompt-field">
-                <span>투자포인트 시스템 프롬프트</span>
-                <textarea id="investmentSystemPrompt" spellcheck="false"></textarea>
-              </label>
-              <label class="json-field prompt-field">
-                <span>투자포인트 추가 지침</span>
-                <textarea id="investmentCustomPrompt" spellcheck="false"></textarea>
-              </label>
-              <label class="json-field prompt-field">
-                <span>주가 포인트 시스템 프롬프트</span>
-                <textarea id="priceSystemPrompt" spellcheck="false"></textarea>
-              </label>
-              <label class="json-field prompt-field">
-                <span>주가 포인트 추가 지침</span>
-                <textarea id="priceCustomPrompt" spellcheck="false"></textarea>
-              </label>
-              <label class="json-field prompt-field">
-                <span>리스크 시스템 프롬프트</span>
-                <textarea id="riskSystemPrompt" spellcheck="false"></textarea>
-              </label>
-              <label class="json-field prompt-field">
-                <span>리스크 추가 지침</span>
-                <textarea id="riskCustomPrompt" spellcheck="false"></textarea>
-              </label>
-            </div>
-          </section>
+            </section>
         </div>
-      </section>
-    </div>
 
-    <script src="./app.js"></script>
-  </body>
+        <script src="./app.js"></script>
+    </body>
 </html>

@@ -22,6 +22,33 @@ let downloadedUpdate = false;
 
 autoUpdater.autoDownload = false;
 
+function parseProjectVersion(contents) {
+  let inProjectSection = false;
+
+  for (const line of contents.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      inProjectSection = trimmed === "[project]";
+      continue;
+    }
+
+    if (!inProjectSection) continue;
+    const match = trimmed.match(/^version\s*=\s*["']([^"']+)["']/);
+    if (match) return match[1];
+  }
+
+  return null;
+}
+
+function getProjectVersion() {
+  const pyprojectPath = path.join(pythonRoot, "pyproject.toml");
+  try {
+    return parseProjectVersion(fs.readFileSync(pyprojectPath, "utf8")) || app.getVersion();
+  } catch {
+    return app.getVersion();
+  }
+}
+
 function sendUpdateStatus(payload) {
   if (!mainWindow) return;
   mainWindow.webContents.send("update:status", {
@@ -351,7 +378,7 @@ ipcMain.handle("app:get-defaults", () => ({
   defaultCaptureOutput,
   cdpUrl: `http://127.0.0.1:${remoteDebuggingPort}`,
   networkLogDir,
-  appVersion: app.getVersion(),
+  appVersion: getProjectVersion(),
   updateFeed,
   updatesSupported: app.isPackaged,
 }));

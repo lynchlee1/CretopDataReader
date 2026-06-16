@@ -362,7 +362,7 @@ function renderShareholderRows(shareholders = []) {
     const enabledCell = document.createElement("td");
     const enabledInput = document.createElement("input");
     enabledInput.type = "checkbox";
-    enabledInput.className = "shareholder-enabled";
+    enabledInput.className = "ui-checkbox shareholder-enabled";
     enabledInput.checked = shareholder.enabled !== false;
     enabledCell.append(enabledInput);
     row.append(enabledCell);
@@ -375,7 +375,7 @@ function renderShareholderRows(shareholders = []) {
     ].forEach(([key, value]) => {
       const cell = document.createElement("td");
       const input = document.createElement("input");
-      input.className = `shareholder-${key}`;
+      input.className = `ui-input shareholder-${key}`;
       input.value = value;
       cell.append(input);
       row.append(cell);
@@ -384,7 +384,7 @@ function renderShareholderRows(shareholders = []) {
     const callCell = document.createElement("td");
     const callInput = document.createElement("input");
     callInput.type = "checkbox";
-    callInput.className = "shareholder-call";
+    callInput.className = "ui-checkbox shareholder-call";
     callInput.checked = shareholder.callEnabled !== false;
     callCell.append(callInput);
     row.append(callCell);
@@ -394,8 +394,8 @@ function renderShareholderRows(shareholders = []) {
     const downButton = document.createElement("button");
     upButton.type = "button";
     downButton.type = "button";
-    upButton.className = "secondary table-button";
-    downButton.className = "secondary table-button";
+    upButton.className = "ui-button ui-button--compact secondary table-button";
+    downButton.className = "ui-button ui-button--compact secondary table-button";
     upButton.textContent = "위";
     downButton.textContent = "아래";
     upButton.disabled = index === 0;

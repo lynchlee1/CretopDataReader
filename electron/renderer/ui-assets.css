@@ -16,6 +16,12 @@
   --ui-control-height-xs: 32px;
   --ui-control-height-md: 42px;
   --ui-control-height-lg: 44px;
+  --ui-control-width-sm: 140px;
+  --ui-control-width-md: 220px;
+  --ui-control-width-lg: 320px;
+  --ui-control-width-xl: 420px;
+  --ui-date-width: 220px;
+  --ui-file-control-width: 320px;
   --ui-control-radius: 10px;
   --ui-control-padding-x: 12px;
   --ui-button-padding-x: 16px;
@@ -51,18 +57,18 @@ button:disabled {
 }
 
 .ui-button {
-  min-height: var(--ui-control-height-md);
-  border-radius: var(--ui-control-radius);
-  padding: 0 var(--ui-button-padding-x);
-  font-size: var(--ui-text-md);
-  font-weight: 750;
-  line-height: var(--ui-line-normal);
+  min-height: var(--ui-control-height-md) !important;
+  border-radius: var(--ui-control-radius) !important;
+  padding: 0 var(--ui-button-padding-x) !important;
+  font-size: var(--ui-text-md) !important;
+  font-weight: 750 !important;
+  line-height: var(--ui-line-normal) !important;
 }
 
 .ui-button--compact {
-  min-height: var(--ui-control-height-xs);
-  padding: 0 10px;
-  font-size: var(--ui-text-sm);
+  min-height: var(--ui-control-height-xs) !important;
+  padding: 0 10px !important;
+  font-size: var(--ui-text-sm) !important;
 }
 
 .ui-field {
@@ -70,10 +76,36 @@ button:disabled {
   gap: 8px;
 }
 
+.form-grid,
+.ppt-form-grid {
+  grid-template-columns: repeat(auto-fit, var(--ui-control-width-md)) !important;
+  justify-content: start !important;
+  align-items: start !important;
+}
+
+.file-field,
+.file-field.wide {
+  width: var(--ui-file-control-width) !important;
+  max-width: 100% !important;
+  grid-column: auto !important;
+}
+
+.file-field > div {
+  width: var(--ui-file-control-width) !important;
+  max-width: 100% !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+}
+
+label > span,
+.checkbox-field > span {
+  font-size: var(--ui-text-sm) !important;
+  line-height: var(--ui-line-normal) !important;
+}
+
 .ui-field-label {
-  font-size: var(--ui-text-sm);
-  font-weight: 700;
-  line-height: var(--ui-line-normal);
+  font-size: var(--ui-text-sm) !important;
+  font-weight: 700 !important;
+  line-height: var(--ui-line-normal) !important;
 }
 
 .ui-input,
@@ -98,9 +130,23 @@ select {
   padding: 0 var(--ui-control-padding-x);
 }
 
+.ui-input,
+select.ui-input {
+  width: var(--ui-control-width-md) !important;
+  max-width: 100% !important;
+  height: var(--ui-control-height-md) !important;
+  padding: 0 var(--ui-control-padding-x) !important;
+  font-size: var(--ui-text-md) !important;
+  line-height: var(--ui-line-normal) !important;
+}
+
 input[type="date"] {
   appearance: none;
   font-size: var(--ui-text-md);
+}
+
+input[type="date"].ui-input {
+  width: var(--ui-date-width) !important;
 }
 
 input[type="date"]::-webkit-datetime-edit,
@@ -128,6 +174,18 @@ textarea {
   line-height: 1.6;
 }
 
+.ui-textarea {
+  min-height: var(--ui-textarea-min-height) !important;
+  padding: var(--ui-control-padding-x) !important;
+  font-family: var(--ui-font-mono) !important;
+  font-size: var(--ui-text-md) !important;
+  line-height: 1.6 !important;
+}
+
+.prompt-field .ui-textarea {
+  min-height: var(--ui-textarea-min-height-compact) !important;
+}
+
 .ui-input:focus,
 .ui-textarea:focus,
 input:focus,
@@ -139,16 +197,22 @@ textarea:focus {
 
 .ui-checkbox {
   flex: 0 0 auto;
-  width: var(--ui-checkbox-size);
-  height: var(--ui-checkbox-size);
-  margin: 0;
-  padding: 0;
+  width: var(--ui-checkbox-size) !important;
+  height: var(--ui-checkbox-size) !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .ui-file-control {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
+  width: var(--ui-file-control-width) !important;
+  max-width: 100% !important;
   gap: 10px;
+}
+
+.ui-file-control .ui-input {
+  width: 100% !important;
 }
 
 .ui-segmented {
@@ -162,12 +226,13 @@ textarea:focus {
 
 .ui-segmented-button {
   flex: 1 1 0;
-  min-height: var(--ui-tab-height);
-  border-radius: 8px;
+  min-height: var(--ui-tab-height) !important;
+  border-radius: 8px !important;
   background: transparent;
   color: var(--muted);
-  font-size: var(--ui-text-md);
-  font-weight: 800;
+  font-size: var(--ui-text-md) !important;
+  font-weight: 800 !important;
+  line-height: var(--ui-line-normal) !important;
 }
 
 .ui-segmented-button:hover {
@@ -187,6 +252,6 @@ textarea:focus {
 }
 
 .ui-step-card {
-  font-size: var(--ui-text-md);
-  line-height: var(--ui-line-normal);
+  font-size: var(--ui-text-md) !important;
+  line-height: var(--ui-line-normal) !important;
 }

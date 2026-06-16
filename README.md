@@ -59,7 +59,7 @@ npm run desktop:dev
 3. `Model.xlsx`와 `{{key}}` 플레이스홀더가 들어 있는 `.pptx` 템플릿을 확인하거나 직접 선택합니다.
 4. 회사 조회 후 주주 목록을 확인하고 필요하면 주주명, 관계, 주식수, 지분율, Call 적용 여부, 표시 순서를 수정합니다.
 5. `AI 문구 생성`을 누르거나, 투자포인트/주가 포인트/리스크 문구를 직접 입력합니다.
-6. `데이터 만들기`를 눌러 FnGuide/KIND, `Model.xlsx`, 주주 편집값, AI 문구 기반 치환 JSON을 만듭니다.
+6. `데이터 만들기`를 눌러 FnGuide/KIND, `Model.xlsx`, 주주 편집값, AI 문구 기반 치환 JSON과 결과 미리보기를 만듭니다.
 7. `저장 파일`에서 결과 `.pptx` 경로를 선택하고 `PPT 생성`을 누릅니다.
 
 기본 템플릿 위치는 `templates/Deal_Summary_Template_1.0`입니다. 이 폴더에 `Model.xlsx`와 `deal-summary.pptx`를 넣으면 앱이 기본 템플릿 폴더로 사용하고, 패키징 시에도 extra resource로 포함합니다.

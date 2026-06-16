@@ -425,6 +425,68 @@ function moveShareholder(index, direction) {
   renderShareholderRows(next);
 }
 
+function renderPptPreview(result) {
+  const summary = $("#pptSummaryPreview");
+  summary.replaceChildren();
+  [
+    ["회사", `${result.data.corp_name || ""} ${result.data.stock_code ? `(${result.data.stock_code})` : ""}`.trim()],
+    ["시장", result.data.stock_market || "-"],
+    ["메자닌", result.data.mezz_type || "-"],
+    ["투자금액", result.data.invest_amt || "-"],
+    ["발행금액", result.data.issue_amt || "-"],
+    ["전환가", result.data.ex_prc || "-"],
+    ["기준일", result.data.base_date || "-"],
+    ["보고일", result.data.report_date || "-"],
+  ].forEach(([term, description]) => {
+    const item = document.createElement("div");
+    const dt = document.createElement("dt");
+    const dd = document.createElement("dd");
+    dt.textContent = term;
+    dd.textContent = description;
+    item.append(dt, dd);
+    summary.append(item);
+  });
+
+  const head = $("#ownershipPreviewHead");
+  const body = $("#ownershipPreviewRows");
+  head.replaceChildren();
+  body.replaceChildren();
+
+  const headerRow = document.createElement("tr");
+  ["구분", ...(result.ownershipCases || []).map((ownershipCase) => ownershipCase.label)].forEach((label) => {
+    const cell = document.createElement("th");
+    cell.textContent = label;
+    headerRow.append(cell);
+  });
+  head.append(headerRow);
+
+  const names = [];
+  (result.ownershipCases || []).forEach((ownershipCase) => {
+    ownershipCase.rows.forEach((row) => {
+      if (!names.includes(row.name)) names.push(row.name);
+    });
+  });
+  names.push("합계");
+
+  names.forEach((name) => {
+    const row = document.createElement("tr");
+    const nameCell = document.createElement("td");
+    nameCell.textContent = name;
+    row.append(nameCell);
+
+    (result.ownershipCases || []).forEach((ownershipCase) => {
+      const cell = document.createElement("td");
+      const ownershipRow = ownershipCase.rows.find((item) => item.name === name);
+      const shares = name === "합계" ? ownershipCase.totalShares : ownershipRow?.shares || 0;
+      const ratio = ownershipCase.denominatorShares > 0 ? (shares / ownershipCase.denominatorShares) * 100 : 0;
+      cell.textContent = shares > 0 || name === "합계" ? `${shares.toLocaleString()} / ${ratio.toFixed(1)}%` : "-";
+      row.append(cell);
+    });
+
+    body.append(row);
+  });
+}
+
 async function loadPptSourceData() {
   const inputs = buildPptInputs();
   if (!/^\d{6}$/.test(inputs.stock_code)) {
@@ -476,6 +538,7 @@ async function buildPptData() {
     });
     state.pptData = result.data;
     $("#pptData").value = JSON.stringify(result.data, null, 2);
+    renderPptPreview(result);
     addLog(`PPT 치환 데이터를 만들었습니다: ${result.data.corp_name || inputs.stock_code}`);
     if (excelData.missingFinancials?.length) {
       addLog(`Model.xlsx에서 찾지 못한 재무 항목: ${excelData.missingFinancials.join(", ")}`);

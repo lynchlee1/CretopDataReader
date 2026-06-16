@@ -448,6 +448,10 @@ textarea:focus {
   font-size: 13px;
 }
 
+.ownership-preview-table {
+  min-width: 980px;
+}
+
 .data-table th,
 .data-table td {
   padding: 8px;

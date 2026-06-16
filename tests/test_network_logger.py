@@ -7,11 +7,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from maxawon.network_logger import (
-    body_extension,
     daily_log_path,
     purge_old_logs,
     sanitize_headers,
-    should_save_body,
+    sanitize_url,
 )
 
 
@@ -23,10 +22,17 @@ class NetworkLoggerTests(unittest.TestCase):
                 "Cookie": "session=secret",
                 "Set-Cookie": "session=secret",
                 "Content-Type": "text/html",
+                "Referer": "https://www.maxawon.com/search?corp=secret",
             }
         )
 
-        self.assertEqual({"Content-Type": "text/html"}, sanitized)
+        self.assertEqual(
+            {
+                "Content-Type": "text/html",
+                "Referer": "https://www.maxawon.com/search?[redacted]",
+            },
+            sanitized,
+        )
 
     def test_purge_old_logs_keeps_only_one_day(self) -> None:
         now = datetime(2026, 6, 15, 9, 0, tzinfo=timezone.utc)
@@ -53,16 +59,15 @@ class NetworkLoggerTests(unittest.TestCase):
 
         self.assertEqual(Path("logs") / "network-2026-06-15.jsonl", daily_log_path(Path("logs"), now))
 
-    def test_saves_textual_xhr_bodies(self) -> None:
-        self.assertTrue(should_save_body("application/json", "xhr"))
-        self.assertTrue(should_save_body("text/html; charset=utf-8", "document"))
-        self.assertFalse(should_save_body("image/svg+xml", "image"))
+    def test_sanitize_url_removes_query_and_fragment(self) -> None:
+        url = "https://www.maxawon.com/search?corp=secret&token=value#section"
 
-    def test_body_extension_matches_content_type(self) -> None:
-        self.assertEqual(".html", body_extension("text/html"))
-        self.assertEqual(".json", body_extension("application/json"))
-        self.assertEqual(".xml", body_extension("application/xml"))
-        self.assertEqual(".txt", body_extension(""))
+        self.assertEqual("https://www.maxawon.com/search?[redacted]", sanitize_url(url))
+
+    def test_sanitize_url_keeps_plain_url(self) -> None:
+        url = "https://www.maxawon.com/search"
+
+        self.assertEqual(url, sanitize_url(url))
 
 
 if __name__ == "__main__":

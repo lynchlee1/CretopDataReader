@@ -27,6 +27,7 @@ const remoteDebuggingPort = "9222";
 const maxawonUrl = "https://www.maxawon.com/";
 const updateFeed = "https://github.com/lynchlee1/Maxawon/releases";
 const filePathKeys = new Set(["captureOutput", "weeklyMezzOutput", "pptTemplate", "pptExcel", "pptOutput"]);
+const networkLoggingEnabled = process.env.MAXAWON_NETWORK_LOGS === "1";
 
 let mainWindow;
 let networkLoggerProcess = null;
@@ -34,31 +35,8 @@ let downloadedUpdate = false;
 
 autoUpdater.autoDownload = false;
 
-function parseProjectVersion(contents) {
-  let inProjectSection = false;
-
-  for (const line of contents.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
-      inProjectSection = trimmed === "[project]";
-      continue;
-    }
-
-    if (!inProjectSection) continue;
-    const match = trimmed.match(/^version\s*=\s*["']([^"']+)["']/);
-    if (match) return match[1];
-  }
-
-  return null;
-}
-
 function getProjectVersion() {
-  const pyprojectPath = path.join(pythonRoot, "pyproject.toml");
-  try {
-    return parseProjectVersion(fs.readFileSync(pyprojectPath, "utf8")) || app.getVersion();
-  } catch {
-    return app.getVersion();
-  }
+  return app.getVersion();
 }
 
 function readFilePathSettings() {
@@ -170,8 +148,10 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  purgeOldNetworkLogs();
-  startNetworkLogger();
+  if (networkLoggingEnabled) {
+    purgeOldNetworkLogs();
+    startNetworkLogger();
+  }
   createWindow();
 });
 
@@ -267,6 +247,7 @@ function purgeOldNetworkLogs() {
 }
 
 function startNetworkLogger() {
+  if (!networkLoggingEnabled) return;
   if (networkLoggerProcess && !networkLoggerProcess.killed) return;
 
   const runtimeStatus = getPythonRuntimeStatus();
@@ -515,10 +496,11 @@ ipcMain.handle("app:open-chrome", async () => {
     { detached: true, stdio: "ignore" },
   );
   child.unref();
-  startNetworkLogger();
 
   return {
-    message: `Chrome을 열었습니다. Network 로그는 ${networkLogDir}에 1일치만 저장합니다.`,
+    message: networkLoggingEnabled
+      ? `Chrome을 열었습니다. Network 로그는 ${networkLogDir}에 1일치만 저장합니다.`
+      : "Chrome을 열었습니다.",
   };
 });
 

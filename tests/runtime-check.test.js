@@ -1,4 +1,6 @@
 const assert = require("assert");
+const fs = require("fs");
+const path = require("path");
 const test = require("node:test");
 
 const {
@@ -52,4 +54,14 @@ test("formatPythonRuntimeError includes install command", () => {
 
   assert.match(message, /playwright/);
   assert.match(message, /python3 -m pip install -e \./);
+});
+
+test("desktop and Python package versions stay aligned", () => {
+  const root = path.resolve(__dirname, "..");
+  const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+  const pyproject = fs.readFileSync(path.join(root, "pyproject.toml"), "utf8");
+  const match = pyproject.match(/^version\s*=\s*["']([^"']+)["']/m);
+
+  assert.ok(match, "pyproject.toml must include a project version");
+  assert.equal(packageJson.version, match[1]);
 });

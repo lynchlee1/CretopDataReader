@@ -7,6 +7,7 @@ import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 
 CDP_URL = "http://127.0.0.1:9222"
@@ -18,6 +19,11 @@ SENSITIVE_HEADERS = {
     "set-cookie",
     "x-csrf-token",
     "x-xsrf-token",
+}
+URL_VALUE_HEADERS = {
+    "location",
+    "referer",
+    "referrer",
 }
 
 
@@ -46,7 +52,7 @@ def purge_old_logs(log_dir: Path, now: datetime | None = None) -> int:
 
 def sanitize_headers(headers: dict[str, str]) -> dict[str, str]:
     return {
-        key: value
+        key: sanitize_url(value) if key.lower() in URL_VALUE_HEADERS else value
         for key, value in headers.items()
         if key.lower() not in SENSITIVE_HEADERS
     }
@@ -61,27 +67,13 @@ def daily_log_path(log_dir: Path, now: datetime | None = None) -> Path:
     return log_dir / f"network-{current.strftime('%Y-%m-%d')}.jsonl"
 
 
-def body_extension(content_type: str) -> str:
-    lowered = content_type.lower()
-    if "html" in lowered:
-        return ".html"
-    if "json" in lowered:
-        return ".json"
-    if "xml" in lowered:
-        return ".xml"
-    return ".txt"
-
-
-def should_save_body(content_type: str, resource_type: str) -> bool:
-    lowered = content_type.lower()
-    if resource_type in {"image", "font", "stylesheet", "script"}:
-        return False
-    return (
-        resource_type in {"document", "xhr", "fetch"}
-        or "text/" in lowered
-        or "json" in lowered
-        or "xml" in lowered
-    )
+def sanitize_url(url: str) -> str:
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return url
+    query = "[redacted]" if parts.query else ""
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, query, ""))
 
 
 class NetworkLogger:
@@ -90,13 +82,11 @@ class NetworkLogger:
         self.cdp_url = cdp_url
         self.requests: dict[str, dict[str, Any]] = {}
         self.log_file = daily_log_path(log_dir)
-        self.body_dir = log_dir / "bodies"
         self.seen_pages: set[int] = set()
 
     def prepare(self) -> None:
         self.log_dir.mkdir(parents=True, exist_ok=True)
         purge_old_logs(self.log_dir)
-        self.body_dir.mkdir(parents=True, exist_ok=True)
 
     def write_event(self, event: dict[str, Any]) -> None:
         event.setdefault("timestamp", iso_now())
@@ -164,18 +154,18 @@ class NetworkLogger:
         request_id = request_hash(request)
         self.requests[request_id] = {
             "method": request.method,
-            "url": request.url,
+            "url": sanitize_url(request.url),
             "resourceType": request.resource_type,
-            "pageUrl": page.url,
+            "pageUrl": sanitize_url(page.url),
         }
         self.write_event(
             {
                 "type": "request",
                 "requestId": request_id,
                 "method": request.method,
-                "url": request.url,
+                "url": sanitize_url(request.url),
                 "resourceType": request.resource_type,
-                "pageUrl": page.url,
+                "pageUrl": sanitize_url(page.url),
                 "headers": sanitize_headers(request.headers),
             }
         )
@@ -187,18 +177,12 @@ class NetworkLogger:
         event: dict[str, Any] = {
             "type": "response",
             "requestId": request_id,
-            "url": response.url,
-            "pageUrl": page.url,
+            "url": sanitize_url(response.url),
+            "pageUrl": sanitize_url(page.url),
             "status": response.status,
             "statusText": response.status_text,
             "headers": headers,
         }
-
-        content_type = headers.get("content-type", "")
-        if should_save_body(content_type, request.resource_type):
-            body_path = await self.save_response_body(request_id, response, content_type)
-            if body_path is not None:
-                event["bodyPath"] = str(body_path)
 
         self.write_event(event)
 
@@ -208,9 +192,9 @@ class NetworkLogger:
                 "type": "request_failed",
                 "requestId": request_hash(request),
                 "method": request.method,
-                "url": request.url,
+                "url": sanitize_url(request.url),
                 "resourceType": request.resource_type,
-                "pageUrl": page.url,
+                "pageUrl": sanitize_url(page.url),
                 "failure": request.failure,
             }
         )
@@ -221,33 +205,11 @@ class NetworkLogger:
                 "type": "request_finished",
                 "requestId": request_hash(request),
                 "method": request.method,
-                "url": request.url,
+                "url": sanitize_url(request.url),
                 "resourceType": request.resource_type,
-                "pageUrl": page.url,
+                "pageUrl": sanitize_url(page.url),
             }
         )
-
-    async def save_response_body(self, request_id: str, response: Any, content_type: str) -> Path | None:
-        try:
-            body = await response.text()
-        except Exception:
-            return None
-
-        self.body_dir.mkdir(parents=True, exist_ok=True)
-        body_path = self.body_dir / f"{request_id}{body_extension(content_type)}"
-        try:
-            body_path.write_text(body, encoding="utf-8", errors="replace")
-            return body_path
-        except OSError as exc:
-            self.write_event(
-                {
-                    "type": "body_save_failed",
-                    "requestId": request_id,
-                    "path": str(body_path),
-                    "message": str(exc),
-                }
-            )
-            return None
 
 
 def request_hash(request: Any) -> str:

@@ -25,7 +25,7 @@ python3 -m pip install -e .
 - `AGENTS.md`, `README.md`, and `docs/**`.
 - `tests/**` and Python test/tool caches.
 - Local browser profiles such as `.chrome-profile/**`.
-- Runtime network logs such as `network-logs/**` and `logs/**`.
+- Opt-in runtime network logs such as `network-logs/**` and `logs/**`.
 - Runtime capture output such as `output/**`.
 - User-provided or exported business data such as `data/**`, `input/**`,
   `exports/**`, `downloads/**`, `*.xlsx`, `*.xlsm`, `*.xls`, and `*.csv`.
@@ -38,7 +38,7 @@ The packaged app writes runtime files under Electron's `userData` directory, not
 inside the installed application directory.
 
 - Chrome profile: `<userData>/chrome-profile`
-- Network logs: `<userData>/network-logs`
+- Network logs: `<userData>/network-logs` when `MAXAWON_NETWORK_LOGS=1`
 - Default table capture output: `<userData>/output/maxawon_condition_search.csv`
 
 ## Browser policy

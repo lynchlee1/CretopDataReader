@@ -3,6 +3,7 @@ const state = {
   captureOutput: "",
   pendingCapture: null,
   captureRunning: false,
+  pptTemplateDir: "",
   pptTemplatePath: "",
   pptExcelPath: "",
   pptOutputPath: "",
@@ -10,6 +11,7 @@ const state = {
   pptCompanyInfo: null,
   pptExcelData: null,
   pptData: null,
+  geminiRunning: false,
   updateAvailable: false,
   updateDownloaded: false,
 };
@@ -68,15 +70,15 @@ const PAGE_INFO = {
       type: "details",
       title: "기능 경계",
       items: [
-        ["입력", "종목코드, Model.xlsx, PPTX 템플릿, AI 문구"],
-        ["작업", "FnGuide/KIND와 Model.xlsx에서 PPT 치환 데이터를 만들고 {{key}} 값을 바꿔 저장합니다."],
-        ["제외", "Gemini 자동 생성과 기본 템플릿 번들"],
+        ["입력", "종목코드, Model.xlsx, Gemini API 키, PPTX 템플릿"],
+        ["작업", "FnGuide/KIND와 Model.xlsx에서 데이터를 만들고 Gemini 문구와 함께 {{key}} 값을 바꿔 저장합니다."],
+        ["제외", "기본 템플릿 번들"],
       ],
     },
     {
       type: "steps",
       title: "사용 방법",
-      items: ["종목코드와 발행 조건을 입력합니다.", "Model.xlsx와 PPTX 템플릿을 선택합니다.", "데이터 만들기 후 PPT 생성을 누릅니다."],
+      items: ["종목코드와 발행 조건을 입력합니다.", "Model.xlsx와 PPTX 템플릿을 선택합니다.", "필요하면 AI 문구 생성을 누릅니다.", "데이터 만들기 후 PPT 생성을 누릅니다."],
     },
   ],
   updates: [
@@ -256,7 +258,169 @@ function buildPptAiText() {
   };
 }
 
-async function buildPptData() {
+function applyTemplateFiles(settings) {
+  if (settings.templateDir) {
+    state.pptTemplateDir = settings.templateDir;
+    $("#pptTemplateDir").value = settings.templateDir;
+  }
+  if (settings.modelPath) {
+    state.pptExcelPath = settings.modelPath;
+    state.pptExcelData = null;
+    $("#pptExcel").value = settings.modelPath;
+  }
+  if (settings.templatePath) {
+    state.pptTemplatePath = settings.templatePath;
+    $("#pptTemplate").value = settings.templatePath;
+  }
+}
+
+function buildGeminiSettings() {
+  return {
+    apiKeys: inputValue("#geminiApiKey") ? [inputValue("#geminiApiKey")] : [],
+    investmentModel: inputValue("#geminiInvestmentModel") || "gemini-1.5-pro",
+    formattingModel: inputValue("#geminiFormattingModel") || "gemini-2.5-flash",
+    useSearchGrounding: $("#geminiUseSearch").checked,
+    templateDir: state.pptTemplateDir,
+    prompts: {
+      investmentSystem: inputValue("#investmentSystemPrompt"),
+      investmentCustom: inputValue("#investmentCustomPrompt"),
+      priceSystem: inputValue("#priceSystemPrompt"),
+      priceCustom: inputValue("#priceCustomPrompt"),
+      riskSystem: inputValue("#riskSystemPrompt"),
+      riskCustom: inputValue("#riskCustomPrompt"),
+    },
+  };
+}
+
+function applyGeminiSettings(settings) {
+  $("#geminiApiKey").value = settings.apiKeys?.[0] || "";
+  $("#geminiInvestmentModel").value = settings.investmentModel || "gemini-1.5-pro";
+  $("#geminiFormattingModel").value = settings.formattingModel || "gemini-2.5-flash";
+  $("#geminiUseSearch").checked = settings.useSearchGrounding !== false;
+  $("#investmentSystemPrompt").value = settings.prompts?.investmentSystem || "";
+  $("#investmentCustomPrompt").value = settings.prompts?.investmentCustom || "";
+  $("#priceSystemPrompt").value = settings.prompts?.priceSystem || "";
+  $("#priceCustomPrompt").value = settings.prompts?.priceCustom || "";
+  $("#riskSystemPrompt").value = settings.prompts?.riskSystem || "";
+  $("#riskCustomPrompt").value = settings.prompts?.riskCustom || "";
+}
+
+function applyAiText(aiText) {
+  $("#investmentTextTitle1").value = aiText.investment_text_title1 || "";
+  $("#investmentTextContents11").value = aiText.investment_text_contents1_1 || "";
+  $("#investmentTextContents12").value = aiText.investment_text_contents1_2 || "";
+  $("#investmentTextTitle2").value = aiText.investment_text_title2 || "";
+  $("#investmentTextContents21").value = aiText.investment_text_contents2_1 || "";
+  $("#investmentTextContents22").value = aiText.investment_text_contents2_2 || "";
+  $("#investmentTextTitle3").value = aiText.investment_text_title3 || "";
+  $("#investmentTextContents31").value = aiText.investment_text_contents3_1 || "";
+  $("#investmentTextContents32").value = aiText.investment_text_contents3_2 || "";
+  $("#priceTextTitle1").value = aiText.price_text_title1 || "";
+  $("#priceTextTitle2").value = aiText.price_text_title2 || "";
+  $("#riskTextTitle1").value = aiText.risk_text_title1 || "";
+  $("#riskTextContents11").value = aiText.risk_text_contents1_1 || "";
+  $("#riskTextTitle2").value = aiText.risk_text_title2 || "";
+  $("#riskTextContents21").value = aiText.risk_text_contents2_1 || "";
+}
+
+function renderShareholderRows(shareholders = []) {
+  const body = $("#shareholderRows");
+  body.replaceChildren();
+  if (shareholders.length === 0) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 7;
+    cell.textContent = "조회된 주주가 없습니다.";
+    row.append(cell);
+    body.append(row);
+    return;
+  }
+
+  shareholders.forEach((shareholder, index) => {
+    const row = document.createElement("tr");
+    row.dataset.index = String(index);
+
+    const enabledCell = document.createElement("td");
+    const enabledInput = document.createElement("input");
+    enabledInput.type = "checkbox";
+    enabledInput.className = "shareholder-enabled";
+    enabledInput.checked = shareholder.enabled !== false;
+    enabledCell.append(enabledInput);
+    row.append(enabledCell);
+
+    [
+      ["name", shareholder.name || ""],
+      ["relation", shareholder.relation || ""],
+      ["shares", shareholder.shares || ""],
+      ["ratio", shareholder.ratio || ""],
+    ].forEach(([key, value]) => {
+      const cell = document.createElement("td");
+      const input = document.createElement("input");
+      input.className = `shareholder-${key}`;
+      input.value = value;
+      cell.append(input);
+      row.append(cell);
+    });
+
+    const callCell = document.createElement("td");
+    const callInput = document.createElement("input");
+    callInput.type = "checkbox";
+    callInput.className = "shareholder-call";
+    callInput.checked = shareholder.callEnabled !== false;
+    callCell.append(callInput);
+    row.append(callCell);
+
+    const orderCell = document.createElement("td");
+    const upButton = document.createElement("button");
+    const downButton = document.createElement("button");
+    upButton.type = "button";
+    downButton.type = "button";
+    upButton.className = "secondary table-button";
+    downButton.className = "secondary table-button";
+    upButton.textContent = "위";
+    downButton.textContent = "아래";
+    upButton.disabled = index === 0;
+    downButton.disabled = index === shareholders.length - 1;
+    upButton.addEventListener("click", () => moveShareholder(index, -1));
+    downButton.addEventListener("click", () => moveShareholder(index, 1));
+    orderCell.append(upButton, downButton);
+    row.append(orderCell);
+
+    body.append(row);
+  });
+}
+
+function collectShareholdersFromEditor() {
+  return $$("#shareholderRows tr")
+    .map((row) => {
+      const enabled = row.querySelector(".shareholder-enabled");
+      const name = row.querySelector(".shareholder-name")?.value.trim();
+      if (!enabled || !enabled.checked || !name) return null;
+      return {
+        name,
+        relation: row.querySelector(".shareholder-relation")?.value.trim() || "",
+        shares: row.querySelector(".shareholder-shares")?.value.trim() || "0",
+        ratio: row.querySelector(".shareholder-ratio")?.value.trim() || "0",
+        callEnabled: row.querySelector(".shareholder-call")?.checked !== false,
+      };
+    })
+    .filter(Boolean);
+}
+
+function moveShareholder(index, direction) {
+  if (!state.pptCompanyInfo?.shareholders) return;
+  const current = collectShareholdersFromEditor();
+  const target = index + direction;
+  if (target < 0 || target >= current.length) return;
+  const next = [...current];
+  const item = next[index];
+  next[index] = next[target];
+  next[target] = item;
+  state.pptCompanyInfo = { ...state.pptCompanyInfo, shareholders: next };
+  renderShareholderRows(next);
+}
+
+async function loadPptSourceData() {
   const inputs = buildPptInputs();
   if (!/^\d{6}$/.test(inputs.stock_code)) {
     window.alert("종목코드는 6자리 숫자로 입력하세요.");
@@ -267,19 +431,36 @@ async function buildPptData() {
     return null;
   }
 
-  $("#buildPptData").disabled = true;
   addLog("PPT Forger 회사 정보와 엑셀 데이터를 읽습니다.");
   try {
+    const useCachedCompany = state.pptCompanyInfo?.stock_code === inputs.stock_code;
+    const useCachedExcel = state.pptExcelData?.path === state.pptExcelPath;
     const [companyInfo, excelData] = await Promise.all([
-      state.pptCompanyInfo?.stock_code === inputs.stock_code
-        ? Promise.resolve(state.pptCompanyInfo)
-        : window.maxawon.pptFetchCompany(inputs.stock_code),
-      state.pptExcelData?.path === state.pptExcelPath
-        ? Promise.resolve(state.pptExcelData)
-        : window.maxawon.pptReadExcel(state.pptExcelPath),
+      useCachedCompany ? Promise.resolve(state.pptCompanyInfo) : window.maxawon.pptFetchCompany(inputs.stock_code),
+      useCachedExcel ? Promise.resolve(state.pptExcelData) : window.maxawon.pptReadExcel(state.pptExcelPath),
     ]);
     state.pptCompanyInfo = { ...companyInfo, stock_code: inputs.stock_code };
     state.pptExcelData = { ...excelData, path: state.pptExcelPath };
+    if (!useCachedCompany) renderShareholderRows(state.pptCompanyInfo.shareholders || []);
+    return { inputs, companyInfo: state.pptCompanyInfo, excelData };
+  } catch (error) {
+    addLog(error.message);
+    window.alert(error.message);
+    return null;
+  }
+}
+
+async function buildPptData() {
+  $("#buildPptData").disabled = true;
+  try {
+    const sourceData = await loadPptSourceData();
+    if (!sourceData) return null;
+    const { inputs, excelData } = sourceData;
+    const companyInfo = {
+      ...sourceData.companyInfo,
+      shareholders: collectShareholdersFromEditor(),
+    };
+    state.pptCompanyInfo = companyInfo;
 
     const result = await window.maxawon.pptBuildData({
       inputs,
@@ -301,6 +482,41 @@ async function buildPptData() {
     return null;
   } finally {
     $("#buildPptData").disabled = false;
+  }
+}
+
+async function generateGeminiText() {
+  if (state.geminiRunning) return null;
+
+  const sourceData = await loadPptSourceData();
+  if (!sourceData) return null;
+
+  state.geminiRunning = true;
+  $("#generateGeminiText").disabled = true;
+  addLog("Gemini 문구 생성을 시작합니다.");
+  try {
+    const savedSettings = await window.maxawon.pptSaveGeminiSettings(buildGeminiSettings());
+    const result = await window.maxawon.pptGenerateGemini({
+      settings: savedSettings,
+      companyInfo: `${sourceData.companyInfo.corp_name}(${sourceData.inputs.stock_code})`,
+      financialData: sourceData.excelData.financialData,
+      options: {
+        investment: $("#generateInvestmentText").checked,
+        price: $("#generatePriceText").checked,
+        risk: $("#generateRiskText").checked,
+      },
+    });
+    applyAiText(result.aiText);
+    addLog("Gemini 문구를 생성하고 입력칸에 반영했습니다.");
+    await buildPptData();
+    return result.aiText;
+  } catch (error) {
+    addLog(error.message);
+    window.alert(error.message);
+    return null;
+  } finally {
+    state.geminiRunning = false;
+    $("#generateGeminiText").disabled = false;
   }
 }
 
@@ -349,6 +565,11 @@ async function init() {
   setText("#updateFeed", defaults.updateFeed);
   if (!defaults.updatesSupported) {
     setUpdateStatus({ status: "unsupported", message: "앱 업데이트 확인은 패키징된 앱에서만 사용할 수 있습니다." });
+  }
+  const geminiSettings = await runAction(() => window.maxawon.pptGetGeminiSettings());
+  if (geminiSettings) {
+    applyGeminiSettings(geminiSettings);
+    applyTemplateFiles(geminiSettings);
   }
 
   window.maxawon.onUpdateStatus((payload) => {
@@ -426,6 +647,15 @@ async function init() {
     addLog(`PPT 템플릿을 선택했습니다: ${selected}`);
   });
 
+  $("#pickPptTemplateDir").addEventListener("click", async () => {
+    const selected = await runAction(() => window.maxawon.pptSelectTemplateDir());
+    if (!selected) return;
+    applyTemplateFiles(selected);
+    addLog(`PPT Forger 템플릿 폴더를 선택했습니다: ${selected.templateDir}`);
+    if (!selected.modelPath) addLog("선택한 폴더에서 Model.xlsx를 찾지 못했습니다.");
+    if (!selected.templatePath) addLog("선택한 폴더에서 deal-summary.pptx를 찾지 못했습니다.");
+  });
+
   $("#pickPptExcel").addEventListener("click", async () => {
     const selected = await runAction(() => window.maxawon.pickPptExcel());
     if (!selected) return;
@@ -445,6 +675,16 @@ async function init() {
 
   $("#buildPptData").addEventListener("click", async () => {
     await buildPptData();
+  });
+
+  $("#saveGeminiSettings").addEventListener("click", async () => {
+    const result = await runAction(() => window.maxawon.pptSaveGeminiSettings(buildGeminiSettings()));
+    if (!result) return;
+    addLog("Gemini 설정을 저장했습니다.");
+  });
+
+  $("#generateGeminiText").addEventListener("click", async () => {
+    await generateGeminiText();
   });
 
   $("#generatePpt").addEventListener("click", async () => {

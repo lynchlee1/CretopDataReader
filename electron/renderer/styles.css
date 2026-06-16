@@ -399,6 +399,10 @@ textarea {
   line-height: 1.6;
 }
 
+.prompt-field textarea {
+  min-height: 112px;
+}
+
 input:focus,
 textarea:focus {
   border-color: var(--accent);
@@ -427,6 +431,47 @@ textarea:focus {
   width: 18px;
   height: 18px;
   margin: 12px 0 0;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  min-width: 860px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.data-table th,
+.data-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.data-table th {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: left;
+}
+
+.data-table input[type="text"],
+.data-table input:not([type]) {
+  height: 34px;
+}
+
+.data-table input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+.table-button {
+  min-height: 32px;
+  margin-right: 6px;
+  padding: 0 10px;
+  font-size: 12px;
 }
 
 .detail-list {

@@ -67,6 +67,13 @@
         "filter": [
           "**/*.py"
         ]
+      },
+      {
+        "from": "templates",
+        "to": "templates",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {

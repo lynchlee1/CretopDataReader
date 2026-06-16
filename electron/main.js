@@ -13,6 +13,8 @@ const profileDir = path.join(runtimeRoot, "chrome-profile");
 const defaultCaptureOutput = path.join(runtimeRoot, "output", "maxawon_condition_search.csv");
 const networkLogDir = path.join(runtimeRoot, "network-logs");
 const defaultPptOutput = path.join(os.homedir(), "Downloads", `Deal_Summary_${Date.now()}.pptx`);
+const pptForgerSettingsPath = path.join(runtimeRoot, "ppt-forger-settings.json");
+const defaultPptTemplateDir = path.join(app.isPackaged ? process.resourcesPath : projectRoot, "templates", "Deal_Summary_Template_1.0");
 const remoteDebuggingPort = "9222";
 const maxawonUrl = "https://www.maxawon.com/";
 const updateFeed = "https://github.com/lynchlee1/Maxawon/releases";
@@ -383,6 +385,8 @@ ipcMain.handle("app:get-defaults", () => ({
   appVersion: getProjectVersion(),
   updateFeed,
   updatesSupported: app.isPackaged,
+  pptForgerSettingsPath,
+  defaultPptTemplateDir,
 }));
 
 ipcMain.handle("app:check-for-updates", async () => {
@@ -527,6 +531,33 @@ ipcMain.handle("app:pick-ppt-output", async (_event, currentPath) => {
   return result.filePath;
 });
 
+function resolvePptTemplateFiles(templateDir) {
+  if (!templateDir) return { templateDir: "", modelPath: "", templatePath: "" };
+  const modelPath = path.join(templateDir, "Model.xlsx");
+  const templatePath = path.join(templateDir, "deal-summary.pptx");
+  return {
+    templateDir,
+    modelPath: fs.existsSync(modelPath) ? modelPath : "",
+    templatePath: fs.existsSync(templatePath) ? templatePath : "",
+  };
+}
+
+ipcMain.handle("app:ppt-select-template-dir", async () => {
+  const { readSettings, writeSettings } = require("./ppt-forger-gemini");
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: "PPT Forger 템플릿 폴더 선택",
+    properties: ["openDirectory"],
+  });
+
+  if (result.canceled || result.filePaths.length === 0) return null;
+  const templateDir = result.filePaths[0];
+  writeSettings(pptForgerSettingsPath, { templateDir });
+  return {
+    ...readSettings(pptForgerSettingsPath),
+    ...resolvePptTemplateFiles(templateDir),
+  };
+});
+
 ipcMain.handle("app:ppt-fetch-company", async (_event, stockCode) => {
   const { fetchCompanyInfo } = require("./ppt-forger-data");
   return fetchCompanyInfo(stockCode);
@@ -541,6 +572,38 @@ ipcMain.handle("app:ppt-read-excel", async (_event, excelPath) => {
 ipcMain.handle("app:ppt-build-data", async (_event, payload) => {
   const { buildPptData } = require("./ppt-forger-data");
   return buildPptData(payload);
+});
+
+ipcMain.handle("app:ppt-get-gemini-settings", async () => {
+  const { readSettings } = require("./ppt-forger-gemini");
+  const settings = readSettings(pptForgerSettingsPath);
+  return {
+    ...settings,
+    ...resolvePptTemplateFiles(settings.templateDir || defaultPptTemplateDir),
+  };
+});
+
+ipcMain.handle("app:ppt-save-gemini-settings", async (_event, settings) => {
+  const { writeSettings } = require("./ppt-forger-gemini");
+  const saved = writeSettings(pptForgerSettingsPath, settings || {});
+  return {
+    ...saved,
+    ...resolvePptTemplateFiles(saved.templateDir || defaultPptTemplateDir),
+  };
+});
+
+ipcMain.handle("app:ppt-generate-gemini", async (_event, payload) => {
+  const { generateGeminiText, readSettings } = require("./ppt-forger-gemini");
+  const settings = {
+    ...readSettings(pptForgerSettingsPath),
+    ...(payload?.settings || {}),
+  };
+  return generateGeminiText({
+    settings,
+    companyInfo: payload?.companyInfo,
+    financialData: payload?.financialData,
+    options: payload?.options,
+  });
 });
 
 ipcMain.handle("app:generate-ppt", async (_event, payload) => {

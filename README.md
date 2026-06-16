@@ -55,12 +55,15 @@ npm run desktop:dev
 왼쪽 메뉴에서 `PPT Forger`를 열면 `finiq-pptforger`의 PPT 데이터 생성과 PPTX 템플릿 치환 기능을 사용할 수 있습니다.
 
 1. 종목코드, 메자닌 종류, 투자금액, 발행금액, 지분율 조건을 입력합니다.
-2. `Model.xlsx`와 `{{key}}` 플레이스홀더가 들어 있는 `.pptx` 템플릿을 선택합니다.
-3. 필요하면 AI 문구 입력칸에 투자포인트, 주가 포인트, 리스크 문구를 직접 입력합니다.
-4. `데이터 만들기`를 눌러 FnGuide/KIND와 `Model.xlsx` 기반 치환 JSON을 만듭니다.
-5. `저장 파일`에서 결과 `.pptx` 경로를 선택하고 `PPT 생성`을 누릅니다.
+2. `템플릿 폴더`를 선택하거나, `Model.xlsx`와 `{{key}}` 플레이스홀더가 들어 있는 `.pptx` 템플릿을 직접 선택합니다.
+3. 회사 조회 후 주주 목록을 확인하고 필요하면 주주명, 관계, 주식수, 지분율, Call 적용 여부, 표시 순서를 수정합니다.
+4. Gemini API 키와 필요하면 프롬프트를 조정한 뒤 `AI 문구 생성`을 누르거나, 투자포인트/주가 포인트/리스크 문구를 직접 입력합니다.
+5. `데이터 만들기`를 눌러 FnGuide/KIND, `Model.xlsx`, 주주 편집값, AI 문구 기반 치환 JSON을 만듭니다.
+6. `저장 파일`에서 결과 `.pptx` 경로를 선택하고 `PPT 생성`을 누릅니다.
 
-현재 이식 범위는 FnGuide/KIND 회사 조회, `Model.xlsx` 읽기, 원본 PPT 치환 데이터 조립, PPTX 템플릿 치환과 저장입니다. Gemini 자동 문구 생성과 기본 템플릿 번들은 후속 단계에서 연결해야 합니다.
+기본 템플릿 위치는 `templates/Deal_Summary_Template_1.0`입니다. 이 폴더에 `Model.xlsx`와 `deal-summary.pptx`를 넣으면 앱이 기본 템플릿 폴더로 사용하고, 패키징 시에도 extra resource로 포함합니다.
+
+현재 이식 범위는 FnGuide/KIND 회사 조회, `Model.xlsx` 읽기, Gemini 문구 생성과 프롬프트 설정, 주주 편집, 원본 PPT 치환 데이터 조립, PPTX 템플릿 치환과 저장입니다. 원본 React 수준의 더 세밀한 표 편집 화면은 후속 단계에서 다듬을 수 있습니다.
 
 ## Chrome 종료
 
@@ -72,7 +75,7 @@ npm run desktop:dev
 - 엑셀 파일을 읽어 Maxawon 검색을 자동으로 반복 실행하는 기능
 - 여러 후보가 나왔을 때 회사를 자동으로 판별하는 기능
 - 로그인 자동화
-- PPT Forger의 Gemini 자동 문구 생성과 기본 템플릿 번들
+- PPT Forger의 원본 React 수준 상세 표 편집 화면
 
 이 프로그램은 CAPTCHA, 봇 탐지, 접근 제한, 속도 제한 같은 보호 장치를 우회하지 않습니다.
 

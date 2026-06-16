@@ -447,6 +447,54 @@ function renderPptPreview(result) {
     summary.append(item);
   });
 
+  const detail = $("#companyDetailPreview");
+  detail.replaceChildren();
+  const companyData = result.companyInfo?.companyData || {};
+  [
+    ["정식명", result.companyInfo?.corp_name_full || "-"],
+    ["영문명", companyData.corp_name_en || "-"],
+    ["대표이사", companyData.representative || "-"],
+    ["설립일", companyData.establishment_date || "-"],
+    ["상장일", companyData.listing_date || "-"],
+    ["업종", companyData.industry || "-"],
+    ["주요제품", companyData.main_products || "-"],
+    ["자본금", companyData.capital || "-"],
+    ["종업원수", companyData.employees || "-"],
+    ["전화번호", companyData.phone || "-"],
+    ["주소", companyData.address || "-"],
+    ["홈페이지", companyData.homepage || "-"],
+  ].forEach(([term, description]) => {
+    const item = document.createElement("div");
+    const dt = document.createElement("dt");
+    const dd = document.createElement("dd");
+    dt.textContent = term;
+    dd.textContent = description;
+    item.append(dt, dd);
+    detail.append(item);
+  });
+
+  const classificationRows = $("#classificationPreviewRows");
+  classificationRows.replaceChildren();
+  const classifications = result.companyInfo?.shareholderClassification || [];
+  if (classifications.length === 0) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 2;
+    cell.textContent = "조회된 주주구분 데이터가 없습니다.";
+    row.append(cell);
+    classificationRows.append(row);
+  } else {
+    classifications.forEach((classification) => {
+      const row = document.createElement("tr");
+      const categoryCell = document.createElement("td");
+      const sharesCell = document.createElement("td");
+      categoryCell.textContent = classification.category || "";
+      sharesCell.textContent = classification.shares || "";
+      row.append(categoryCell, sharesCell);
+      classificationRows.append(row);
+    });
+  }
+
   const head = $("#ownershipPreviewHead");
   const body = $("#ownershipPreviewRows");
   head.replaceChildren();

@@ -65,7 +65,7 @@ npm run desktop:dev
 
 기본 템플릿 위치는 `templates/Deal_Summary_Template_1.0`입니다. 이 폴더에 `Model.xlsx`와 `deal-summary.pptx`를 넣으면 앱이 기본 템플릿 폴더로 사용하고, 패키징 시에도 extra resource로 포함합니다.
 
-현재 이식 범위는 FnGuide/KIND 회사 조회, `Model.xlsx` 읽기, Gemini 문구 생성과 프롬프트 설정, 주주 편집, 원본 PPT 치환 데이터 조립, PPTX 템플릿 치환과 저장입니다. 원본 React 수준의 더 세밀한 표 편집 화면은 후속 단계에서 다듬을 수 있습니다.
+현재 이식 범위는 FnGuide/KIND 회사 조회, `Model.xlsx` 읽기, Gemini 문구 생성과 프롬프트 설정, 회사/주주/ownership 미리보기, 주주 편집, 원본 PPT 치환 데이터 조립, PPTX 템플릿 치환과 저장입니다.
 
 ## Chrome 종료
 
@@ -77,7 +77,6 @@ npm run desktop:dev
 - 엑셀 파일을 읽어 Maxawon 검색을 자동으로 반복 실행하는 기능
 - 여러 후보가 나왔을 때 회사를 자동으로 판별하는 기능
 - 로그인 자동화
-- PPT Forger의 원본 React 수준 상세 표 편집 화면
 
 이 프로그램은 CAPTCHA, 봇 탐지, 접근 제한, 속도 제한 같은 보호 장치를 우회하지 않습니다.
 

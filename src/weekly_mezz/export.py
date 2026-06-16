@@ -8,7 +8,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
-from weekly_mezz.dart import fetch_corp_code_entries, fetch_document_soups, fetch_previous_family_rcept_no
+from weekly_mezz.dart import fetch_previous_family_rcept_no
 from weekly_mezz.parser import parse_report_document
 
 INCLUSION_KEYWORDS = [["전환사채", "교환사채", "신주인수권부사채"], "발행"]
@@ -311,10 +311,10 @@ def format_investors_text(parsed: dict) -> str:
     return "" if fallback in (None, "-", "") else str(fallback)
 
 
-def parse_report_documents(report: dict, api_key: str | None = None) -> dict:
+def parse_report_documents(report: dict) -> dict:
     if report.get("html_path") or report.get("source_file"):
         return parse_report_document(report, [])
-    return parse_report_document(report, fetch_document_soups(report.get("rcept_no"), api_key=api_key))
+    return parse_report_document(report, [])
 
 
 def previous_rcept_no_from_parsed(parsed: dict, current_rcept_no: str) -> str:
@@ -385,16 +385,9 @@ def build_export_row(
     }
 
 
-def build_export_rows_with_audit(data: dict, api_key: str | None = None, progress_callback=None) -> tuple:
+def build_export_rows_with_audit(data: dict, progress_callback=None) -> tuple:
     reports = filter_reports(data.get("list", []))
     company_stock_code_map = {}
-    corp_code_error = ""
-    try:
-        company_stock_code_map = build_company_stock_code_map(fetch_corp_code_entries(api_key=api_key))
-    except Exception as exc:
-        corp_code_error = str(exc)
-        if progress_callback:
-            progress_callback(f"종목코드 매핑 다운로드 실패: {exc}")
 
     rows = []
     audit_rows = []
@@ -407,7 +400,7 @@ def build_export_rows_with_audit(data: dict, api_key: str | None = None, progres
         parsed = {}
         parse_error = ""
         try:
-            parsed = parse_report_documents(report, api_key=api_key)
+            parsed = parse_report_documents(report)
         except Exception as exc:
             parse_error = str(exc)
             parse_failures.append({"rcept_no": report.get("rcept_no"), "error": parse_error})
@@ -459,7 +452,6 @@ def build_export_rows_with_audit(data: dict, api_key: str | None = None, progres
         "exported_count": len(rows),
         "parse_failure_count": len(parse_failures),
         "family_lookup_failure_count": len(family_lookup_failures),
-        "corp_code_mapping_error": corp_code_error,
     }
     rows.sort(key=lambda row: (row.get("filing_date") or "9999-99-99", row.get("rcept_no") or ""))
     audit_rows.sort(
@@ -471,9 +463,9 @@ def build_export_rows_with_audit(data: dict, api_key: str | None = None, progres
     return rows, summary, audit_rows
 
 
-def export_reports(data: dict, output_path, audit_json_path=None, api_key: str | None = None, progress_callback=None) -> ExportResult:
+def export_reports(data: dict, output_path, audit_json_path=None, progress_callback=None) -> ExportResult:
     output_path = ensure_parent_dir(output_path)
-    rows, summary, audit_rows = build_export_rows_with_audit(data, api_key=api_key, progress_callback=progress_callback)
+    rows, summary, audit_rows = build_export_rows_with_audit(data, progress_callback=progress_callback)
     workbook = Workbook()
     report_sheet = workbook.active
     report_sheet.title = "reports"

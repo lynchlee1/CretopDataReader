@@ -6,7 +6,6 @@ from pathlib import Path
 
 from weekly_mezz.kind import fetch_mezzanine_reports
 from weekly_mezz.export import default_output_path, export_reports
-from weekly_mezz.settings import get_api_key
 
 
 def parse_yyyymmdd(value: str) -> date:
@@ -44,12 +43,10 @@ def collect_and_export(
     end_date: date,
     output_path,
     audit_json_path=None,
-    api_key: str | None = None,
     last_reprt_at: str = "N",
     progress_callback=None,
 ):
     validate_period(start_date, end_date)
-    api_key = api_key or get_api_key()
     output_parent = Path(output_path).expanduser().resolve().parent
     data = fetch_mezzanine_reports(
         start_date,
@@ -62,7 +59,6 @@ def collect_and_export(
         data,
         output_path,
         audit_json_path=audit_json_path,
-        api_key=api_key,
         progress_callback=progress_callback,
     )
 
@@ -78,7 +74,6 @@ def build_parser() -> argparse.ArgumentParser:
     collect_parser.add_argument("--output", default=str(default_output_path()))
     collect_parser.add_argument("--audit-json", default="")
     collect_parser.add_argument("--last-reprt-at", default="N", choices=("Y", "N"))
-    collect_parser.add_argument("--api-key", default="", help="OpenDART corpCode.xml API key for target-stock mapping")
     return parser
 
 
@@ -91,7 +86,6 @@ def main(argv=None) -> int:
             parse_yyyymmdd(args.to_date),
             args.output,
             audit_json_path=args.audit_json or None,
-            api_key=args.api_key or None,
             last_reprt_at=args.last_reprt_at,
             progress_callback=print,
         )
@@ -106,4 +100,3 @@ def main(argv=None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

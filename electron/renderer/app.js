@@ -725,7 +725,6 @@ async function runWeeklyMezz() {
       toDate: compactDate(toDate),
       outputPath: state.weeklyMezzOutput,
       lastReportOnly: $("#weeklyMezzLastOnly").checked,
-      apiKey: inputValue("#weeklyMezzApiKey"),
     });
     const summary = result.summary || {};
     addLog(`Weekly Mezz 엑셀을 저장했습니다: ${result.outputPath}`);

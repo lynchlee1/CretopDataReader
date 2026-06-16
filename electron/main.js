@@ -721,13 +721,11 @@ start_date = parse_yyyymmdd(sys.argv[1])
 end_date = parse_yyyymmdd(sys.argv[2])
 output_path = Path(sys.argv[3]).expanduser()
 last_reprt_at = sys.argv[4] or "N"
-api_key = sys.argv[5] or None
 
 result = collect_and_export(
     start_date,
     end_date,
     output_path,
-    api_key=api_key,
     last_reprt_at=last_reprt_at,
 )
 print(json.dumps({
@@ -742,7 +740,6 @@ print(json.dumps({
       payload.toDate,
       payload.outputPath,
       payload.lastReportOnly ? "Y" : "N",
-      payload.apiKey || "",
     ],
   ),
 );

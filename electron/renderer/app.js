@@ -221,6 +221,9 @@ function pythonRuntimeMessage(status) {
   const missing = (status.missing || [])
     .map((item) => item.packageName)
     .join(", ");
+  if (status.installCommand === null) {
+    return `${status.message}${missing ? ` 누락: ${missing}.` : ""} 앱을 다시 설치하세요.`;
+  }
   const installCommand = `${status.command || "python3"} -m pip install -e .`;
   return `${status.message}${missing ? ` 누락: ${missing}.` : ""} 프로젝트 폴더에서 ${installCommand} 실행 후 다시 시작하세요.`;
 }

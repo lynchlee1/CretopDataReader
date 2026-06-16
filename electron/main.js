@@ -32,6 +32,7 @@ const networkLoggingEnabled = process.env.MAXAWON_NETWORK_LOGS === "1";
 let mainWindow;
 let networkLoggerProcess = null;
 let downloadedUpdate = false;
+let cachedWorkerRuntimeStatus = null;
 
 autoUpdater.autoDownload = false;
 
@@ -171,19 +172,41 @@ function pythonCommand() {
   return process.env.PYTHON || (process.platform === "win32" ? "python" : "python3");
 }
 
+function workerCommand() {
+  if (!app.isPackaged) return pythonCommand();
+  return path.join(process.resourcesPath, "bin", process.platform === "win32" ? "maxawon-worker.exe" : "maxawon-worker");
+}
+
+function workerArgs(args = []) {
+  return app.isPackaged ? args : ["-m", "maxawon.worker", ...args];
+}
+
 function pythonEnv() {
   return buildPythonEnv(process.env, srcRoot);
 }
 
 function getPythonRuntimeStatus() {
-  return checkPythonRuntime({
-    command: pythonCommand(),
+  if (app.isPackaged && cachedWorkerRuntimeStatus) return cachedWorkerRuntimeStatus;
+
+  const status = checkPythonRuntime({
+    command: workerCommand(),
+    args: workerArgs(["check"]),
     cwd: pythonRoot,
     env: pythonEnv(),
   });
+  if (app.isPackaged && !status.ok) {
+    cachedWorkerRuntimeStatus = {
+      ...status,
+      installCommand: null,
+      message: status.message.replace(workerCommand(), "내장 Python worker"),
+    };
+    return cachedWorkerRuntimeStatus;
+  }
+  if (app.isPackaged && status.ok) cachedWorkerRuntimeStatus = status;
+  return status;
 }
 
-function runPython(code, args = []) {
+function runWorker(args = []) {
   return new Promise((resolve, reject) => {
     try {
       assertPythonRuntime(getPythonRuntimeStatus());
@@ -192,7 +215,7 @@ function runPython(code, args = []) {
       return;
     }
 
-    const child = spawn(pythonCommand(), ["-c", code, ...args], {
+    const child = spawn(workerCommand(), workerArgs(args), {
       cwd: pythonRoot,
       env: pythonEnv(),
     });
@@ -214,7 +237,7 @@ function runPython(code, args = []) {
       try {
         resolve(JSON.parse(stdout));
       } catch (error) {
-        reject(new Error(`Python returned invalid JSON: ${stdout.trim()}`));
+        reject(new Error(`Python worker returned invalid JSON: ${stdout.trim()}`));
       }
     });
   });
@@ -265,15 +288,14 @@ function startNetworkLogger() {
   const stdout = fs.openSync(path.join(networkLogDir, "network-logger.stdout.log"), "a");
   const stderr = fs.openSync(path.join(networkLogDir, "network-logger.stderr.log"), "a");
   networkLoggerProcess = spawn(
-    pythonCommand(),
-    [
-      "-m",
-      "maxawon.network_logger",
+    workerCommand(),
+    workerArgs([
+      "network-logger",
       "--log-dir",
       networkLogDir,
       "--cdp-url",
       `http://127.0.0.1:${remoteDebuggingPort}`,
-    ],
+    ]),
     {
       cwd: pythonRoot,
       env: pythonEnv(),
@@ -689,62 +711,25 @@ ipcMain.handle("app:generate-ppt", async (_event, payload) => {
 });
 
 ipcMain.handle("app:capture-table", (_event, payload) =>
-  runPython(
-    `
-import json
-import sys
-from pathlib import Path
-from maxawon.table_capture import CapturedTable, capture_current_maxawon_table_sync, write_table_csv
-max_pages = int(sys.argv[1]) if sys.argv[1] else None
-output_path = Path(sys.argv[2])
-result = capture_current_maxawon_table_sync(max_pages=max_pages)
-if not result.rows:
-    raise RuntimeError("현재 화면에서 복사할 테이블 데이터를 찾지 못했습니다.")
-output_path.parent.mkdir(parents=True, exist_ok=True)
-write_table_csv(output_path, CapturedTable(result.headers, result.rows))
-print(json.dumps({
-    "headers": result.headers,
-    "rows": result.rows[:100],
-    "pages": result.pages,
-    "rowCount": len(result.rows),
-    "outputPath": str(output_path),
-}, ensure_ascii=False))
-`,
-    [payload.maxPages == null ? "" : String(payload.maxPages), payload.outputPath],
-  ),
+  runWorker([
+    "capture-table",
+    "--max-pages",
+    payload.maxPages == null ? "" : String(payload.maxPages),
+    "--output-path",
+    payload.outputPath,
+  ]),
 );
 
 ipcMain.handle("app:weekly-mezz-collect", (_event, payload) =>
-  runPython(
-    `
-import json
-import sys
-from pathlib import Path
-from weekly_mezz.cli import collect_and_export, parse_yyyymmdd
-
-start_date = parse_yyyymmdd(sys.argv[1])
-end_date = parse_yyyymmdd(sys.argv[2])
-output_path = Path(sys.argv[3]).expanduser()
-last_reprt_at = sys.argv[4] or "Y"
-
-result = collect_and_export(
-    start_date,
-    end_date,
-    output_path,
-    last_reprt_at=last_reprt_at,
-)
-print(json.dumps({
-    "outputPath": str(result.output_path),
-    "rawPath": str(result.raw_path) if result.raw_path else "",
-    "auditPath": str(result.audit_path) if result.audit_path else "",
-    "summary": result.summary,
-}, ensure_ascii=False))
-`,
-    [
-      payload.fromDate,
-      payload.toDate,
-      payload.outputPath,
-      payload.lastReportValue || "Y",
-    ],
-  ),
+  runWorker([
+    "weekly-mezz-collect",
+    "--from-date",
+    payload.fromDate,
+    "--to-date",
+    payload.toDate,
+    "--output-path",
+    payload.outputPath,
+    "--last-report-value",
+    payload.lastReportValue || "Y",
+  ]),
 );

@@ -27,8 +27,8 @@ print(json.dumps({"missing": missing}, ensure_ascii=False))
 `;
 }
 
-function checkPythonRuntime({ command, cwd, env, spawnSyncImpl = spawnSync } = {}) {
-  const result = spawnSyncImpl(command, ["-c", dependencyProbeCode()], {
+function checkPythonRuntime({ command, args, cwd, env, spawnSyncImpl = spawnSync } = {}) {
+  const result = spawnSyncImpl(command, args || ["-c", dependencyProbeCode()], {
     cwd,
     env,
     encoding: "utf8",
@@ -73,11 +73,13 @@ function checkPythonRuntime({ command, cwd, env, spawnSyncImpl = spawnSync } = {
 
 function formatPythonRuntimeError(status) {
   const missing = status.missing.map((item) => `${item.packageName}(${item.feature})`).join(", ");
-  const installCommand = `${status.command} -m pip install -e .`;
+  const installCommand = status.installCommand || `${status.command} -m pip install -e .`;
   return [
     status.message,
     missing ? `누락: ${missing}` : "",
-    `프로젝트 폴더에서 \`${installCommand}\`를 실행한 뒤 다시 시도하세요.`,
+    status.installCommand === null
+      ? "앱에 포함된 Python worker를 찾지 못했습니다. 앱을 다시 설치하세요."
+      : `프로젝트 폴더에서 \`${installCommand}\`를 실행한 뒤 다시 시도하세요.`,
   ].filter(Boolean).join("\n");
 }
 

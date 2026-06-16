@@ -19,6 +19,9 @@ python3 -m pip install -e .
 npm install
 ```
 
+GitHub Releases에서 받은 설치 파일로 실행하는 사용자는 Python과 Node.js를
+따로 설치하지 않아도 됩니다. 개발 실행과 릴리스 빌드에만 필요합니다.
+
 ## 실행
 
 일반 실행:
@@ -32,6 +35,20 @@ npm run desktop
 ```bash
 npm run desktop:dev
 ```
+
+## 설치 파일 만들기
+
+현재 OS용 Python worker를 만든 뒤 Electron 설치 파일을 생성합니다.
+
+```bash
+python3 -m pip install -e ".[build]"
+npm install
+npm run dist       # Windows
+npm run dist:mac   # macOS
+```
+
+패키징된 앱은 내장된 `maxawon-worker`를 사용하므로 사용자 PC에 Python 설치를
+요구하지 않습니다.
 
 ## 사용 순서
 

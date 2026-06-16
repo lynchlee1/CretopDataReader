@@ -7,18 +7,32 @@ at runtime.
 
 - `electron/**/*`: Electron main, preload, renderer HTML, CSS, and JavaScript.
 - `package.json`: Electron app metadata used by the packaged app.
+- `dist-python/maxawon-worker`: bundled Python worker copied to `bin/`.
 - Python runtime modules under `src/**`, copied through `extraResources` so
-  Python can import them as normal files.
+  development runs can import them as normal files.
 
 ## Runtime prerequisite
 
-The app uses the user's installed Python 3 and checks required Python packages
-before starting Cretop capture or Weekly Mezz collection. If a package is
-missing, the app reports the missing module and asks the user to run:
+Development runs use the developer's installed Python 3 and checks required
+Python packages before starting Cretop capture, Weekly Mezz collection, or
+network logging. If a package is missing, the app reports the missing module and
+asks the developer to run:
 
 ```bash
 python3 -m pip install -e .
 ```
+
+Packaged apps include a PyInstaller-built `maxawon-worker` executable under the
+Electron resources directory and do not require users to install Python. Build it
+before packaging:
+
+```bash
+python3 -m pip install -e ".[build]"
+npm run build:python
+```
+
+`npm run dist`, `npm run dist:mac`, and `npm run dist:dir` run
+`build:python` automatically for the current OS.
 
 ## Not included in the Electron build
 

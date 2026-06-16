@@ -18,9 +18,9 @@
         </div>
 
         <nav class="nav">
-          <button class="nav-button active" data-view="session">Chrome 로그인 세션 연결</button>
-          <button class="nav-button" data-view="capture">조건검색 테이블 CSV 저장</button>
-          <button class="nav-button" data-view="updates">앱 업데이트 확인 및 설치</button>
+          <button class="nav-button active" data-view="session">Cretop 로그인 연결하기</button>
+          <button class="nav-button" data-view="capture">Cretop 검색결과 저장하기</button>
+          <button class="nav-button" data-view="updates">앱 최신버전 설치하기</button>
         </nav>
 
         <div id="appVersion" class="app-version"></div>
@@ -45,7 +45,7 @@
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">Chrome Session</p>
-                <h2>Chrome 로그인 세션 연결</h2>
+                <h2>Cretop 로그인 연결하기</h2>
               </div>
               <div class="panel-actions">
                 <button id="openChrome" class="primary">Chrome 열기</button>
@@ -71,12 +71,16 @@
                 <h3>기능 경계</h3>
                 <dl class="boundary-list">
                   <div>
-                    <dt>입력</dt>
+                    <dt>Source</dt>
                     <dd>사용자가 Chrome에서 직접 로그인한 브라우저 세션</dd>
                   </div>
                   <div>
                     <dt>동작</dt>
                     <dd>앱에서 실행할 Chrome을 열고 로그인 완료 상태를 표시합니다.</dd>
+                  </div>
+                  <div>
+                    <dt>Output</dt>
+                    <dd>앱의 세션 연결 상태와 이후 기능에서 사용할 Chrome 세션</dd>
                   </div>
                   <div>
                     <dt>제외</dt>
@@ -107,7 +111,7 @@
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">Condition Search Export</p>
-                <h2>조건검색 테이블 CSV 저장</h2>
+                <h2>Cretop 검색결과 저장하기</h2>
               </div>
               <div class="panel-actions">
                 <button id="captureTable" class="primary">현재 조건검색 테이블 저장</button>
@@ -136,12 +140,16 @@
                 <h3>기능 경계</h3>
                 <dl class="boundary-list">
                   <div>
-                    <dt>입력</dt>
+                    <dt>Source</dt>
                     <dd>현재 Chrome 화면에 표시된 조건검색 결과 테이블</dd>
                   </div>
                   <div>
                     <dt>동작</dt>
                     <dd>보이는 결과 테이블을 읽고 지정한 CSV 파일로 저장합니다.</dd>
+                  </div>
+                  <div>
+                    <dt>Output</dt>
+                    <dd>지정한 경로의 CSV 파일과 앱 화면의 복사 결과 미리보기</dd>
                   </div>
                   <div>
                     <dt>제외</dt>
@@ -167,7 +175,7 @@
             <div class="panel-heading">
               <div>
                 <p class="eyebrow">App Update</p>
-                <h2>앱 업데이트 확인 및 설치</h2>
+                <h2>앱 최신버전 설치하기</h2>
               </div>
               <div class="panel-actions">
                 <button id="checkUpdates" class="primary">새 버전 확인</button>
@@ -199,12 +207,16 @@
                 <h3>기능 경계</h3>
                 <dl class="boundary-list">
                   <div>
-                    <dt>입력</dt>
+                    <dt>Source</dt>
                     <dd>현재 설치된 앱 버전과 GitHub 릴리스 업데이트 기준</dd>
                   </div>
                   <div>
                     <dt>동작</dt>
                     <dd>새 버전을 확인하고, 사용자가 선택하면 다운로드 후 재시작 설치를 진행합니다.</dd>
+                  </div>
+                  <div>
+                    <dt>Output</dt>
+                    <dd>업데이트 상태 표시, 다운로드된 새 버전, 재시작 후 설치 결과</dd>
                   </div>
                   <div>
                     <dt>제외</dt>

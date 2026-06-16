@@ -324,9 +324,9 @@ class MaxawonApp:
         ttk.Label(parent, text="Maxawon", style="SidebarTitle.TLabel").grid(row=1, column=0, sticky="w", pady=(4, 18))
 
         nav_items = [
-            ("session", "세션 연결"),
-            ("capture", "조건검색 복사"),
-            ("excel", "엑셀 처리"),
+            ("session", "Cretop 로그인 연결하기"),
+            ("capture", "Cretop 검색결과 저장하기"),
+            ("excel", "엑셀 검색대상 확인하기"),
         ]
         for row, (name, label) in enumerate(nav_items, start=2):
             button = ttk.Button(
@@ -359,7 +359,7 @@ class MaxawonApp:
 
         actions = self._make_card(
             parent,
-            "세션 연결",
+            "Cretop 로그인 연결하기",
             "Chrome을 원격 디버깅 모드로 열고, 로그인은 사용자가 직접 완료합니다.",
         )
         actions.grid(row=0, column=0, sticky="ew")
@@ -396,7 +396,7 @@ class MaxawonApp:
 
         controls = self._make_card(
             parent,
-            "현재 조건검색 결과",
+            "Cretop 검색결과 저장하기",
             "Maxawon에서 사용자가 직접 띄운 조건검색 결과 테이블을 CSV로 저장합니다.",
         )
         controls.grid(row=0, column=0, sticky="ew")
@@ -447,7 +447,7 @@ class MaxawonApp:
 
         actions = self._make_card(
             parent,
-            "엑셀 처리",
+            "엑셀 검색대상 확인하기",
             "검색 대상 파일을 불러오고 앞부분을 확인합니다. 자동 검색 처리는 규칙 확정 후 진행됩니다.",
         )
         actions.grid(row=0, column=0, sticky="ew")

@@ -60,7 +60,7 @@ body {
   border-radius: 10px;
   background: #f9fafb;
   color: var(--sidebar);
-  font-weight: 800;
+  font-weight: var(--ui-weight-title);
 }
 
 .brand strong,
@@ -90,14 +90,14 @@ body {
   padding: 0 14px;
   color: #94a3b8;
   font-size: var(--ui-text-xs);
-  font-weight: 850;
+  font-weight: var(--ui-weight-label);
 }
 
 .app-version {
   margin-top: auto;
   color: #9ca3af;
   font-size: var(--ui-text-sm);
-  font-weight: 700;
+  font-weight: var(--ui-weight-label);
 }
 
 .nav-button {
@@ -108,7 +108,7 @@ body {
   background: transparent;
   color: #cbd5e1;
   font-size: var(--ui-text-md);
-  font-weight: 700;
+  font-weight: var(--ui-weight-action);
   line-height: var(--ui-line-normal);
   text-align: left;
 }
@@ -122,6 +122,11 @@ body {
 .nav-button.active {
   background: var(--sidebar-active);
   color: #ffffff;
+}
+
+.nav-button:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.7);
+  outline-offset: 2px;
 }
 
 .main {
@@ -159,7 +164,7 @@ textarea {
   margin: 0 0 6px;
   color: var(--accent);
   font-size: var(--ui-text-sm);
-  font-weight: 800;
+  font-weight: var(--ui-weight-title);
   text-transform: uppercase;
 }
 
@@ -214,7 +219,7 @@ h2 {
 label span {
   color: var(--muted);
   font-size: var(--ui-text-sm);
-  font-weight: 700;
+  font-weight: var(--ui-weight-label);
 }
 
 .panel {
@@ -268,7 +273,7 @@ label span {
   cursor: pointer;
   color: var(--text);
   font-size: var(--ui-text-lg);
-  font-weight: 800;
+  font-weight: var(--ui-weight-title);
   line-height: var(--ui-line-normal);
 }
 
@@ -329,7 +334,7 @@ label span {
   border-radius: var(--ui-control-radius);
   padding: 0 var(--ui-button-padding-x);
   font-size: var(--ui-text-md);
-  font-weight: 750;
+  font-weight: var(--ui-weight-action);
   line-height: var(--ui-line-normal);
 }
 
@@ -368,7 +373,7 @@ label span {
 
 .form-grid {
   display: grid;
-  grid-template-columns: 180px minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(var(--ui-control-width-md), 1fr));
   gap: 16px;
   margin: 0;
 }
@@ -465,7 +470,7 @@ button.workflow-overview-item.complete > span {
   background: #e0ecff;
   color: var(--accent-strong);
   font-size: var(--ui-text-md);
-  font-weight: 850;
+  font-weight: var(--ui-weight-title);
 }
 
 .workflow-overview-item strong,
@@ -477,12 +482,14 @@ button.workflow-overview-item.complete > span {
 
 .workflow-overview-item strong {
   font-size: var(--ui-text-md);
+  font-weight: var(--ui-weight-title);
 }
 
 .workflow-overview-item small {
   margin-top: 3px;
   color: var(--muted);
   font-size: var(--ui-text-md);
+  font-weight: var(--ui-weight-body);
   line-height: var(--ui-line-normal);
   white-space: normal;
 }
@@ -503,7 +510,7 @@ button.workflow-overview-item.complete > span {
   background: transparent;
   color: var(--muted);
   font-size: var(--ui-text-md);
-  font-weight: 800;
+  font-weight: var(--ui-weight-title);
 }
 
 .ppt-tab:hover {
@@ -593,6 +600,7 @@ button.workflow-overview-item.complete > span {
 .review-block h4 {
   margin: 0 0 12px;
   font-size: var(--ui-text-lg);
+  font-weight: var(--ui-weight-title);
   line-height: var(--ui-line-normal);
 }
 
@@ -625,7 +633,13 @@ button.workflow-overview-item.complete > span {
   display: flex;
   align-items: center;
   gap: 10px;
+  justify-content: flex-start;
   min-height: var(--ui-control-height-md);
+}
+
+.checkbox-field > span {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .checkbox-field input {
@@ -659,7 +673,7 @@ button.workflow-overview-item.complete > span {
   background: transparent;
   color: var(--muted);
   font-size: var(--ui-text-md);
-  font-weight: 800;
+  font-weight: var(--ui-weight-title);
 }
 
 .prompt-tab:hover {
@@ -725,6 +739,7 @@ button.workflow-overview-item.complete > span {
 .data-table th {
   color: var(--muted);
   font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-label);
   text-align: left;
 }
 
@@ -797,7 +812,7 @@ button.workflow-overview-item.complete > span {
 .detail-list dd,
 .boundary-list dd {
   overflow-wrap: anywhere;
-  font-weight: 700;
+  font-weight: var(--ui-weight-body);
 }
 
 .boundary-list {
@@ -810,7 +825,7 @@ button.workflow-overview-item.complete > span {
 .page-section label span {
   color: var(--muted);
   font-size: var(--ui-text-sm);
-  font-weight: 700;
+  font-weight: var(--ui-weight-label);
 }
 
 .detail-list dd,
@@ -840,7 +855,7 @@ button.workflow-overview-item.complete > span {
   color: var(--text);
   font-family: inherit;
   font-size: var(--ui-text-md);
-  font-weight: 750;
+  font-weight: var(--ui-weight-action);
 }
 
 .log-panel {

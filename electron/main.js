@@ -15,10 +15,12 @@ const networkLogDir = path.join(runtimeRoot, "network-logs");
 const defaultPptOutput = path.join(os.homedir(), "Downloads", `Deal_Summary_${Date.now()}.pptx`);
 const defaultWeeklyMezzOutput = path.join(os.homedir(), "Downloads", `weekly_mezz_${Date.now()}.xlsx`);
 const pptForgerSettingsPath = path.join(runtimeRoot, "ppt-forger-settings.json");
+const filePathsSettingsPath = path.join(runtimeRoot, "file-paths.json");
 const defaultPptTemplateDir = path.join(app.isPackaged ? process.resourcesPath : projectRoot, "templates", "Deal_Summary_Template_1.0");
 const remoteDebuggingPort = "9222";
 const maxawonUrl = "https://www.maxawon.com/";
 const updateFeed = "https://github.com/lynchlee1/Maxawon/releases";
+const filePathKeys = new Set(["captureOutput", "weeklyMezzOutput", "pptTemplate", "pptExcel", "pptOutput"]);
 
 let mainWindow;
 let networkLoggerProcess = null;
@@ -51,6 +53,38 @@ function getProjectVersion() {
   } catch {
     return app.getVersion();
   }
+}
+
+function readFilePathSettings() {
+  try {
+    if (!fs.existsSync(filePathsSettingsPath)) return {};
+    const saved = JSON.parse(fs.readFileSync(filePathsSettingsPath, "utf8"));
+    if (!saved || typeof saved !== "object" || Array.isArray(saved)) return {};
+
+    return Object.fromEntries(
+      Object.entries(saved).filter(([key, value]) => filePathKeys.has(key) && typeof value === "string"),
+    );
+  } catch {
+    return {};
+  }
+}
+
+function writeFilePathSettings(nextPaths) {
+  const merged = {
+    ...readFilePathSettings(),
+    ...Object.fromEntries(
+      Object.entries(nextPaths || {}).filter(([key, value]) => filePathKeys.has(key) && typeof value === "string"),
+    ),
+  };
+  fs.mkdirSync(path.dirname(filePathsSettingsPath), { recursive: true });
+  fs.writeFileSync(filePathsSettingsPath, JSON.stringify(merged, null, 2), "utf8");
+  return merged;
+}
+
+function saveFilePath(key, filePath) {
+  if (!filePathKeys.has(key)) throw new Error("저장할 수 없는 파일 경로 항목입니다.");
+  if (typeof filePath !== "string" || filePath.trim() === "") throw new Error("저장할 파일 경로가 비어 있습니다.");
+  return writeFilePathSettings({ [key]: filePath });
 }
 
 function sendUpdateStatus(payload) {
@@ -382,6 +416,8 @@ ipcMain.handle("app:get-defaults", () => ({
   defaultCaptureOutput,
   defaultPptOutput,
   defaultWeeklyMezzOutput,
+  savedFilePaths: readFilePathSettings(),
+  filePathsSettingsPath,
   cdpUrl: `http://127.0.0.1:${remoteDebuggingPort}`,
   networkLogDir,
   appVersion: getProjectVersion(),
@@ -488,6 +524,7 @@ ipcMain.handle("app:pick-capture-output", async (_event, currentPath) => {
   });
 
   if (result.canceled || !result.filePath) return null;
+  saveFilePath("captureOutput", result.filePath);
   return result.filePath;
 });
 
@@ -502,6 +539,7 @@ ipcMain.handle("app:pick-ppt-template", async () => {
   });
 
   if (result.canceled || result.filePaths.length === 0) return null;
+  saveFilePath("pptTemplate", result.filePaths[0]);
   return result.filePaths[0];
 });
 
@@ -516,6 +554,7 @@ ipcMain.handle("app:pick-ppt-excel", async () => {
   });
 
   if (result.canceled || result.filePaths.length === 0) return null;
+  saveFilePath("pptExcel", result.filePaths[0]);
   return result.filePaths[0];
 });
 
@@ -530,6 +569,7 @@ ipcMain.handle("app:pick-ppt-output", async (_event, currentPath) => {
   });
 
   if (result.canceled || !result.filePath) return null;
+  saveFilePath("pptOutput", result.filePath);
   return result.filePath;
 });
 
@@ -544,6 +584,7 @@ ipcMain.handle("app:pick-weekly-mezz-output", async (_event, currentPath) => {
   });
 
   if (result.canceled || !result.filePath) return null;
+  saveFilePath("weeklyMezzOutput", result.filePath);
   return result.filePath;
 });
 

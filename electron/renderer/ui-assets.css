@@ -34,11 +34,16 @@
   --ui-textarea-min-height: 220px;
   --ui-textarea-min-height-compact: 180px;
   --ui-focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.14);
+  --ui-weight-body: 500;
+  --ui-weight-label: 700;
+  --ui-weight-title: 800;
+  --ui-weight-action: 750;
 }
 
 body {
   font-family: var(--ui-font-family);
   font-size: var(--ui-text-md);
+  font-weight: var(--ui-weight-body);
   line-height: var(--ui-line-normal);
   letter-spacing: 0;
   text-size-adjust: none;
@@ -70,7 +75,7 @@ button:disabled {
   border-radius: var(--ui-control-radius) !important;
   padding: 0 var(--ui-button-padding-x) !important;
   font-size: var(--ui-text-md) !important;
-  font-weight: 750 !important;
+  font-weight: var(--ui-weight-action) !important;
   line-height: var(--ui-line-normal) !important;
 }
 
@@ -87,33 +92,44 @@ button:disabled {
 
 .form-grid,
 .ppt-form-grid {
-  grid-template-columns: repeat(auto-fit, var(--ui-control-width-md)) !important;
+  grid-template-columns: repeat(auto-fit, minmax(var(--ui-control-width-md), 1fr)) !important;
   justify-content: start !important;
   align-items: start !important;
 }
 
-.file-field,
-.file-field.wide {
-  width: var(--ui-file-control-width) !important;
+.file-field {
+  width: 100% !important;
   max-width: 100% !important;
   grid-column: auto !important;
 }
 
+.file-field.wide {
+  width: 100% !important;
+  max-width: 100% !important;
+  grid-column: 1 / -1 !important;
+}
+
 .file-field > div {
-  width: var(--ui-file-control-width) !important;
+  width: 100% !important;
   max-width: 100% !important;
   grid-template-columns: minmax(0, 1fr) auto !important;
+}
+
+.file-field .ui-button,
+.ui-path-field .ui-button {
+  min-width: 72px;
 }
 
 label > span,
 .checkbox-field > span {
   font-size: var(--ui-text-sm) !important;
+  font-weight: var(--ui-weight-label) !important;
   line-height: var(--ui-line-normal) !important;
 }
 
 .ui-field-label {
   font-size: var(--ui-text-sm) !important;
-  font-weight: 700 !important;
+  font-weight: var(--ui-weight-label) !important;
   line-height: var(--ui-line-normal) !important;
 }
 
@@ -141,7 +157,7 @@ select {
 
 .ui-input,
 select.ui-input {
-  width: var(--ui-control-width-md) !important;
+  width: 100% !important;
   max-width: 100% !important;
   height: var(--ui-control-height-md) !important;
   padding: 0 var(--ui-control-padding-x) !important;
@@ -155,7 +171,7 @@ input[type="date"] {
 }
 
 input[type="date"].ui-input {
-  width: var(--ui-date-width) !important;
+  width: 100% !important;
 }
 
 input[type="date"]::-webkit-datetime-edit,
@@ -221,7 +237,7 @@ textarea:focus {
 .ui-file-control {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  width: var(--ui-file-control-width) !important;
+  width: 100% !important;
   max-width: 100% !important;
   gap: 10px;
 }
@@ -246,7 +262,7 @@ textarea:focus {
   background: transparent;
   color: var(--muted);
   font-size: var(--ui-text-md) !important;
-  font-weight: 800 !important;
+  font-weight: var(--ui-weight-title) !important;
   line-height: var(--ui-line-normal) !important;
 }
 
@@ -275,6 +291,14 @@ textarea:focus {
 .ui-step-card small {
   font-size: var(--ui-text-md) !important;
   line-height: var(--ui-line-normal) !important;
+}
+
+.ui-step-card strong {
+  font-weight: var(--ui-weight-title) !important;
+}
+
+.ui-step-card small {
+  font-weight: var(--ui-weight-body) !important;
 }
 
 .ui-workbench {
@@ -341,7 +365,7 @@ textarea:focus {
 .ui-field-card > h4 {
   color: var(--text);
   font-size: var(--ui-text-lg) !important;
-  font-weight: 850;
+  font-weight: var(--ui-weight-title);
 }
 
 .ui-field-grid {
@@ -384,10 +408,6 @@ textarea:focus {
 
 .ui-grid-card-2 .ui-field-grid {
   grid-template-columns: repeat(2, minmax(220px, 1fr)) !important;
-}
-
-.ui-path-field .ui-button {
-  min-width: 58px;
 }
 
 .ui-inline-controls {

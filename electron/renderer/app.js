@@ -253,7 +253,7 @@ function buildPptOwnership() {
     refixingPercent: inputValue("#pptRefixingPercent"),
     priorMezzanineShares: inputValue("#pptPriorMezzanineShares"),
     maxShareholders: inputValue("#pptMaxShareholders"),
-    isTreasuryEb: $("#pptTreasuryEb").checked,
+    isTreasuryEb: $("#pptTreasuryEb").value === "Y",
   };
 }
 
@@ -291,6 +291,20 @@ function applyTemplateFiles(settings) {
     state.pptTemplatePath = settings.templatePath;
     $("#pptTemplate").value = settings.templatePath;
   }
+}
+
+function applySavedFilePaths(savedFilePaths = {}, defaults = {}) {
+  state.captureOutput = savedFilePaths.captureOutput || defaults.defaultCaptureOutput || "";
+  state.weeklyMezzOutput = savedFilePaths.weeklyMezzOutput || defaults.defaultWeeklyMezzOutput || "";
+  state.pptOutputPath = savedFilePaths.pptOutput || defaults.defaultPptOutput || "";
+  state.pptTemplatePath = savedFilePaths.pptTemplate || state.pptTemplatePath;
+  state.pptExcelPath = savedFilePaths.pptExcel || state.pptExcelPath;
+
+  $("#captureOutput").value = state.captureOutput;
+  $("#weeklyMezzOutput").value = state.weeklyMezzOutput;
+  $("#pptOutput").value = state.pptOutputPath;
+  $("#pptTemplate").value = state.pptTemplatePath;
+  $("#pptExcel").value = state.pptExcelPath;
 }
 
 function buildGeminiSettings() {
@@ -730,12 +744,7 @@ async function init() {
   renderPageInfo();
 
   const defaults = await window.maxawon.getDefaults();
-  state.captureOutput = defaults.defaultCaptureOutput;
-  state.weeklyMezzOutput = defaults.defaultWeeklyMezzOutput;
-  state.pptOutputPath = defaults.defaultPptOutput;
-  $("#captureOutput").value = defaults.defaultCaptureOutput;
-  $("#weeklyMezzOutput").value = defaults.defaultWeeklyMezzOutput;
-  $("#pptOutput").value = defaults.defaultPptOutput;
+  applySavedFilePaths(defaults.savedFilePaths, defaults);
   const weeklyMezzDates = defaultWeeklyMezzDates();
   $("#weeklyMezzFrom").value = weeklyMezzDates.from;
   $("#weeklyMezzTo").value = weeklyMezzDates.to;
@@ -751,6 +760,7 @@ async function init() {
   if (geminiSettings) {
     applyGeminiSettings(geminiSettings);
     applyTemplateFiles(geminiSettings);
+    applySavedFilePaths(defaults.savedFilePaths, defaults);
   }
 
   window.maxawon.onUpdateStatus((payload) => {

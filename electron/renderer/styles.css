@@ -861,17 +861,20 @@ button.workflow-overview-item.complete > span {
 .log-panel {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  flex: 0 0 178px;
+  flex: 0 0 auto;
   min-height: 0;
   padding: 18px;
   overflow: hidden;
 }
 
 .logs {
+  --log-row-height: 40px;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 104px;
+  height: calc((var(--log-row-height) * 5) + (8px * 4));
+  min-height: calc((var(--log-row-height) * 5) + (8px * 4));
+  max-height: calc((var(--log-row-height) * 5) + (8px * 4));
   margin: 0;
   padding: 0;
   overflow: auto;
@@ -881,14 +884,16 @@ button.workflow-overview-item.complete > span {
 .main:has(#session.view.active) .logs,
 .main:has(#capture.view.active) .logs,
 .main:has(#updates.view.active) .logs {
-  max-height: none;
+  max-height: calc((var(--log-row-height) * 5) + (8px * 4));
 }
 
 .logs li {
   display: grid;
   grid-template-columns: 76px minmax(0, 1fr);
+  align-items: start;
   gap: 12px;
   width: 100%;
+  min-height: var(--log-row-height);
   padding: 8px 10px;
   border-radius: 10px;
   background: var(--surface-soft);

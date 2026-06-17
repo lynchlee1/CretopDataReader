@@ -1,6 +1,6 @@
 from openpyxl import Workbook
 
-from weekly_mezz.export import COLUMN_SPECS, _write_report_sheet, build_export_row
+from weekly_mezz.export import COLUMN_SPECS, _write_report_sheet, build_export_row, export_reports
 
 
 def test_weekly_mezz_export_uses_requested_columns_and_formats():
@@ -24,7 +24,7 @@ def test_weekly_mezz_export_uses_requested_columns_and_formats():
             "만기이율": "2.5%",
             "리픽싱(%)": "70%",
             "리픽싱사유": "시가하락",
-            "발행대상자": [["투자자A", 10000000000]],
+            "발행대상자": [["(주)투자자A", 100000000000], ["주식회사 투자자B", 25000000000]],
         },
     )
 
@@ -50,12 +50,13 @@ def test_weekly_mezz_export_uses_requested_columns_and_formats():
         "만기이자율",
         "CALL",
         "Refixing",
+        "리픽싱사유",
         "투자자",
         "섹터",
         "당사검토",
         "주관",
     ]
-    assert sheet.max_column == 21
+    assert sheet.max_column == 22
     assert sheet.freeze_panes == "A2"
     assert sheet["B2"].value == "26-01-15"
     assert sheet["C2"].value == "26-01-20"
@@ -63,7 +64,9 @@ def test_weekly_mezz_export_uses_requested_columns_and_formats():
     assert sheet["M2"].value == "/ "
     assert sheet["N2"].value == "0.0%"
     assert sheet["O2"].value == "/ 2.5%"
-    assert sheet["Q2"].value == "70.0% 시가하락"
+    assert sheet["Q2"].value == "70.0%"
+    assert sheet["R2"].value == "시가하락"
+    assert sheet["S2"].value == "투자자A 1,000, 투자자B 250"
     assert sheet["D2"].alignment.horizontal == "left"
     assert sheet["D2"].alignment.indent == 1
     assert sheet["I2"].alignment.horizontal == "right"
@@ -72,3 +75,29 @@ def test_weekly_mezz_export_uses_requested_columns_and_formats():
     assert sheet["M2"].alignment.indent == 0
     assert sheet["N2"].alignment.indent == 0
     assert sheet["O2"].alignment.indent == 0
+
+
+def test_weekly_mezz_export_prefers_full_decision_method_for_premium_text():
+    row = build_export_row(
+        {"rcept_no": "20260115000001", "report_nm": "전환사채권발행결정"},
+        {
+            "납입일": "2026-01-20",
+            "만기일": "2029-01-20",
+            "전환가액 결정방법": "가중산술평균주가를 기준으로 긴 산식 전체를 보존하고 기준주가의 110%로 산정한다",
+            "할증관련텍스트": "기준주가의 110%",
+        },
+    )
+
+    assert row["premium_text"] == "가중산술평균주가를 기준으로 긴 산식 전체를 보존하고 기준주가의 110%로 산정한다"
+
+
+def test_weekly_mezz_export_saves_only_excel(tmp_path):
+    output_path = tmp_path / "weekly_mezz.xlsx"
+
+    result = export_reports({"list": [], "total_count": 0}, output_path)
+
+    assert result.output_path == output_path
+    assert result.raw_path is None
+    assert result.audit_path is None
+    assert output_path.exists()
+    assert not output_path.with_name("weekly_mezz_raw.json").exists()

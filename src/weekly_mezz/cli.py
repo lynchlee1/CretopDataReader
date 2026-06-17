@@ -92,7 +92,8 @@ def main(argv=None) -> int:
         print(f"Saved XLSX: {result.output_path}")
         if result.audit_path:
             print(f"Saved audit JSON: {result.audit_path}")
-        print(f"Saved raw JSON: {result.raw_path}")
+        if result.raw_path:
+            print(f"Saved raw JSON: {result.raw_path}")
         return 0
     parser.error("unknown command")
     return 2

@@ -191,7 +191,7 @@ async def _find_maxawon_page(browser: Any) -> Any:
         for page in context.pages
     ]
     for page in reversed(pages):
-        if "maxawon.com" in page.url:
+        if "cretop.com" in page.url:
             return page
     if pages:
         return pages[-1]

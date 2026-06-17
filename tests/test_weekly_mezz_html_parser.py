@@ -15,6 +15,7 @@ def test_html_parser_preserves_stable_basic_and_refixing_keys(tmp_path):
           <tr><th>만기이자율</th><td>2.0</td></tr>
           <tr><th>사채만기일</th><td>2029년 01월 01일</td></tr>
           <tr><th>전환가액 (원/주)</th><td>5,000</td></tr>
+          <tr><th>전환가액 결정방법</th><td>기준주가의 110%로 산정하며 이 문장은 잘리지 않아야 한다</td></tr>
           <tr><th>납입일</th><td>2026년 01월 01일</td></tr>
           <tr><th>시가하락에 따른 전환가액 조정</th><td>3,500</td></tr>
           <tr><th>전환가액 조정에 관한 사항</th><td>매 3개월마다 전환가액의 70% 이상으로 한다</td></tr>
@@ -35,6 +36,8 @@ def test_html_parser_preserves_stable_basic_and_refixing_keys(tmp_path):
     assert parsed["발행금액(억)"] == 100.0
     assert parsed["행사가액"] == 5000
     assert parsed["전환가액(원)"] == 5000
+    assert parsed["전환가액 결정방법"] == "기준주가의 110%로 산정하며 이 문장은 잘리지 않아야 한다"
+    assert parsed["할증관련텍스트"] == "기준주가의 110%로 산정하며 이 문장은 잘리지 않아야 한다"
     assert parsed["리픽싱(원)"] == 3500
     assert parsed["리픽싱(%)"] in {"70%", "70.0%"}
     assert parsed["리픽싱가격"] in {"70%", "70.0%"}

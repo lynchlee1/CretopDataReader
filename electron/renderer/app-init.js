@@ -209,11 +209,13 @@ async function generatePptFromUi() {
   $("#generatePpt").disabled = true;
   addLog("PPT 생성을 시작합니다.");
   try {
+    addLog("PPT 템플릿을 열고 치환 데이터를 적용합니다.");
     const result = await window.maxawon.generatePpt({
       templatePath: state.pptTemplatePath,
       outputPath: state.pptOutputPath,
       data,
     });
+    addLog(`PPT 치환 키 ${result.replacedKeys.length}개를 처리했습니다.`);
     addLog(`PPT를 저장했습니다: ${result.outputPath}`);
   } catch (error) {
     addLog(error.message);
@@ -238,6 +240,7 @@ function bindUpdateEvents() {
 
     const result = await runAction(() => window.maxawon.checkForUpdates());
     if (!result) return;
+    if (result.status === "checked") return;
     setUpdateStatus(result);
     addLog(result.message);
   });

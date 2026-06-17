@@ -24,7 +24,7 @@ const pptForgerSettingsPath = path.join(runtimeRoot, "ppt-forger-settings.json")
 const filePathsSettingsPath = path.join(runtimeRoot, "file-paths.json");
 const defaultPptTemplateDir = path.join(app.isPackaged ? process.resourcesPath : projectRoot, "templates", "Deal_Summary_Template_1.0");
 const remoteDebuggingPort = "9222";
-const maxawonUrl = "https://www.maxawon.com/";
+const cretopUrl = "https://www.cretop.com/";
 const updateFeed = "https://github.com/lynchlee1/Maxawon/releases";
 const filePathKeys = new Set(["captureOutput", "weeklyMezzOutput", "pptTemplate", "pptExcel", "pptOutput"]);
 const networkLoggingEnabled = process.env.MAXAWON_NETWORK_LOGS === "1";
@@ -513,7 +513,7 @@ ipcMain.handle("app:open-chrome", async () => {
       `--user-data-dir=${profileDir}`,
       `--remote-debugging-port=${remoteDebuggingPort}`,
       "--new-window",
-      maxawonUrl,
+      cretopUrl,
     ],
     { detached: true, stdio: "ignore" },
   );

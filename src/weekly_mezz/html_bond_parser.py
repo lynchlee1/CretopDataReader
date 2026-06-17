@@ -65,6 +65,7 @@ def parse_bond_issuance_html(html_text: str | bytes, *, file_path: str | Path, r
             "만기일": _parse_date_or_raw(_last_value(_row_containing(rows, "사채만기일"))),
             "행사가액": _exercise_price(rows),
             "전환가액(원)": _exercise_price(rows),
+            "전환가액 결정방법": _decision_method_text(rows),
             "대상주식": _exercise_target(rows),
             "전환시작일": _parse_date_or_raw(_exercise_period_value(rows, "시작일")),
             "전환종료일": _parse_date_or_raw(_exercise_period_value(rows, "종료일")),
@@ -78,7 +79,7 @@ def parse_bond_issuance_html(html_text: str | bytes, *, file_path: str | Path, r
 
     _populate_refixing(record, rows, document_text)
     if not is_bw:
-        populate_premium_fields(record, document_text)
+        populate_premium_fields(record, record.get("전환가액 결정방법") or document_text)
     populate_maturity_term(record)
     populate_participant_fields(record, bs_tables)
     _merge_current_participant_targets(record)
@@ -335,6 +336,14 @@ def _exercise_price(rows):
         if value is not None:
             return value
     return None
+
+
+def _decision_method_text(rows):
+    for label in ("전환가액 결정방법", "교환가액 결정방법", "행사가액 결정방법", "전환가격 결정방법", "교환가격 결정방법", "행사가격 결정방법"):
+        row = _row_containing(rows, label)
+        if len(row) > 1:
+            return " ".join(row[1:])
+    return ""
 
 
 def _exercise_target(rows):

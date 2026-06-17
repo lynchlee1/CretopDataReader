@@ -592,6 +592,8 @@ async function loadPptSourceData() {
   try {
     const useCachedCompany = state.pptCompanyInfo?.stock_code === inputs.stock_code;
     const useCachedExcel = state.pptExcelData?.path === state.pptExcelPath;
+    if (!useCachedCompany) addLog(`회사 정보를 조회합니다: ${inputs.stock_code}`);
+    if (!useCachedExcel) addLog(`Model.xlsx를 읽습니다: ${state.pptExcelPath}`);
     const [companyInfo, excelData] = await Promise.all([
       useCachedCompany ? Promise.resolve(state.pptCompanyInfo) : window.maxawon.pptFetchCompany(inputs.stock_code),
       useCachedExcel ? Promise.resolve(state.pptExcelData) : window.maxawon.pptReadExcel(state.pptExcelPath),
@@ -599,6 +601,7 @@ async function loadPptSourceData() {
     state.pptCompanyInfo = { ...companyInfo, stock_code: inputs.stock_code };
     state.pptExcelData = { ...excelData, path: state.pptExcelPath };
     if (!useCachedCompany) renderShareholderRows(state.pptCompanyInfo.shareholders || []);
+    addLog("회사 정보와 엑셀 데이터 읽기를 완료했습니다.");
     return { inputs, companyInfo: state.pptCompanyInfo, excelData };
   } catch (error) {
     addLog(error.message);
@@ -619,6 +622,7 @@ async function buildPptData(nextTab = "shareholders") {
     };
     state.pptCompanyInfo = companyInfo;
 
+    addLog("PPT 치환 데이터 계산을 시작합니다.");
     const result = await window.maxawon.pptBuildData({
       inputs,
       companyInfo,
@@ -654,7 +658,9 @@ async function generateGeminiText() {
   $("#generateGeminiText").disabled = true;
   addLog("Gemini 문구 생성을 시작합니다.");
   try {
+    addLog("Gemini 설정을 저장하고 요청 데이터를 준비합니다.");
     const savedSettings = await window.maxawon.pptSaveGeminiSettings(buildGeminiSettings());
+    addLog("Gemini에 투자포인트/가격/리스크 문구 생성을 요청합니다.");
     const result = await window.maxawon.pptGenerateGemini({
       settings: savedSettings,
       companyInfo: `${sourceData.companyInfo.corp_name}(${sourceData.inputs.stock_code})`,
@@ -691,8 +697,11 @@ async function runCapture(payload, resumed = false) {
   addLog(resumed ? "보류된 조건검색 테이블 CSV 저장을 재개합니다." : "현재 조건검색 테이블 CSV 저장을 시작합니다.");
 
   try {
+    addLog("Chrome 원격 디버깅 세션에 연결하고 현재 Maxawon 화면을 확인합니다.");
+    addLog("조건검색 결과 테이블과 다음 페이지 여부를 읽는 중입니다.");
     const result = await window.maxawon.captureTable(payload);
     state.pendingCapture = null;
+    addLog(`조건검색 결과 ${result.pages}페이지, ${result.rowCount}행을 읽었습니다.`);
     addLog(`조건검색 결과 ${result.rowCount}행을 저장했습니다: ${result.outputPath}`);
   } catch (error) {
     if (isExpiredError(error)) {
@@ -737,6 +746,8 @@ async function runWeeklyMezz() {
   $("#runWeeklyMezz").disabled = true;
   addLog(`주간 메자닌 발행현황 수집을 시작합니다: ${fromDate} ~ ${toDate}`);
   try {
+    addLog("KIND 공시 목록을 조회하고 대상 보고서를 필터링합니다.");
+    addLog(`최종보고서만 조건을 적용합니다: ${lastReportValue}`);
     const result = await window.maxawon.weeklyMezzCollect({
       fromDate: compactDate(fromDate),
       toDate: compactDate(toDate),
@@ -744,6 +755,7 @@ async function runWeeklyMezz() {
       lastReportValue,
     });
     const summary = result.summary || {};
+    addLog("수집 결과를 엑셀 파일로 정리했습니다.");
     addLog(`주간 메자닌 발행현황 엑셀을 저장했습니다: ${result.outputPath}`);
     addLog(`검색 ${summary.total_count || 0}건, 필터 ${summary.filtered_count || 0}건, 저장 ${summary.exported_count || 0}건`);
     if (result.rawPath) addLog(`원본 JSON을 저장했습니다: ${result.rawPath}`);

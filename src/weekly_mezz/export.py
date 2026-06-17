@@ -8,6 +8,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
+from participant_parser import fundname_to_corpname_safe
 from weekly_mezz.dart import fetch_previous_family_rcept_no
 from weekly_mezz.parser import parse_report_document
 
@@ -53,7 +54,8 @@ COLUMN_SPECS = [
     {"header": "표면이자율", "key": "coupon_rate_text", "width": 11, "align": "right"},
     {"header": "만기이자율", "key": "maturity_rate_text", "width": 12, "align": "left"},
     {"header": "CALL", "key": "call_blank", "width": 8, "align": "center"},
-    {"header": "Refixing", "key": "refixing_text", "width": 34, "align": "left", "margin": True},
+    {"header": "Refixing", "key": "refixing_floor_text", "width": 12, "align": "right", "margin": True},
+    {"header": "리픽싱사유", "key": "refixing_reason", "width": 34, "align": "left", "margin": True},
     {"header": "투자자", "key": "investors_text", "width": 34, "align": "left", "margin": True},
     {"header": "섹터", "key": "sector_blank", "width": 12, "align": "left", "margin": True},
     {"header": "당사검토", "key": "internal_review", "width": 12, "align": "left", "margin": True},
@@ -235,10 +237,20 @@ def calculate_maturity_term_text(issue_date, maturity_date) -> str:
     return f"{(maturity_date_value - issue_date_value).days / 365.0:.1f}년"
 
 
-def format_refixing_text(floor_pct, reason) -> str:
-    floor_text = format_rate_text(floor_pct)
-    reason_text = "" if reason in (None, "-") else str(reason).strip()
-    return " ".join(part for part in (floor_text, reason_text) if part)
+def clean_investor_name(value) -> str:
+    text = fundname_to_corpname_safe(str(value or "").strip())
+    text = CORP_DESIGNATOR_PATTERN.sub("", text)
+    return re.sub(r"\s+", " ", text).strip(" ,")
+
+
+def format_investor_amount(amount) -> str:
+    parsed = parse_numeric_value(amount)
+    if parsed is None:
+        return ""
+    amount_in_eok = parsed / 10**8
+    if float(amount_in_eok).is_integer():
+        return f"{int(amount_in_eok):,}"
+    return f"{amount_in_eok:,.1f}"
 
 
 def normalize_option_schedule_triplets(schedules) -> list[list[str]]:
@@ -289,36 +301,32 @@ def format_investors_text(parsed: dict) -> str:
         for row in issue_targets:
             if not isinstance(row, (list, tuple)) or not row:
                 continue
-            name = str(row[0] or "").strip()
-            amount = parse_numeric_value(row[1] if len(row) > 1 else None)
+            name = clean_investor_name(row[0])
+            amount_text = format_investor_amount(row[1] if len(row) > 1 else None)
             if not name:
                 continue
-            if amount is None:
+            if not amount_text:
                 formatted_targets.append(name)
             else:
-                amount_in_eok = amount / 10**8
-                amount_text = str(int(amount_in_eok)) if float(amount_in_eok).is_integer() else f"{amount_in_eok:.1f}"
                 formatted_targets.append(f"{name} {amount_text}")
         if formatted_targets:
-            return "\n".join(formatted_targets)
+            return ", ".join(formatted_targets)
     investor_rows = parsed.get("투자자별투자액") or []
     if investor_rows:
         formatted = []
         for investor in investor_rows:
-            name = (investor.get("name") or "").strip()
-            amount = parse_numeric_value(investor.get("amount"))
+            name = clean_investor_name(investor.get("name"))
+            amount_text = format_investor_amount(investor.get("amount"))
             if not name:
                 continue
-            if amount is None:
+            if not amount_text:
                 formatted.append(name)
             else:
-                amount_in_eok = amount / 10**8
-                amount_text = str(int(amount_in_eok)) if float(amount_in_eok).is_integer() else f"{amount_in_eok:.1f}"
                 formatted.append(f"{name} {amount_text}")
         if formatted:
-            return "\n".join(formatted)
+            return ", ".join(formatted)
     fallback = parsed.get("발행대상")
-    return "" if fallback in (None, "-", "") else str(fallback)
+    return "" if fallback in (None, "-", "") else str(fallback).replace("\n", ", ")
 
 
 def parse_report_documents(report: dict) -> dict:
@@ -361,6 +369,10 @@ def build_export_row(
         parsed.get("리픽싱(%)") if parsed.get("리픽싱(%)") is not None else parsed.get("리픽싱가격")
     )
     refixing_reason = parsed.get("리픽싱사유") or parsed.get("리픽싱내용") or ""
+    refixing_reason = "" if refixing_reason in (None, "-") else str(refixing_reason).strip()
+    premium_text = parsed.get("전환가액 결정방법") or parsed.get("할증관련텍스트") or ""
+    if isinstance(premium_text, (list, tuple)):
+        premium_text = " ".join(str(value) for value in premium_text if value not in (None, ""))
 
     return {
         "rcept_no": report.get("rcept_no", ""),
@@ -376,7 +388,7 @@ def build_export_row(
         "security_type": security_type,
         "issue_amount_eok": parse_numeric_value(parsed.get("발행금액") if parsed.get("발행금액") is not None else parsed.get("발행금액(억)")),
         "strike_price": parse_numeric_value(parsed.get("행사가액") if parsed.get("행사가액") is not None else parsed.get("전환가액(원)")),
-        "premium_text": parsed.get("할증관련텍스트") or "",
+        "premium_text": premium_text,
         "issue_date": issue_date if issue_date != "-" else "",
         "issue_date_display": format_short_date(issue_date if issue_date != "-" else ""),
         "maturity_date": maturity_date,
@@ -398,8 +410,8 @@ def build_export_row(
         "refixing_cycle_months": parse_numeric_value(parsed.get("리픽싱주가")),
         "refixing_price_won": parse_numeric_value(parsed.get("리픽싱(원)")),
         "refixing_floor_pct": refixing_floor_pct,
+        "refixing_floor_text": format_rate_text(refixing_floor_pct),
         "refixing_reason": refixing_reason,
-        "refixing_text": format_refixing_text(refixing_floor_pct, refixing_reason),
         "investors_text": format_investors_text(parsed),
         "venture_blank": "",
         "market_cap_blank": "",
@@ -505,7 +517,7 @@ def export_reports(data: dict, output_path, audit_json_path=None, progress_callb
     if ENABLE_AUDIT_JSON:
         audit_json_path = audit_json_path or output_path.with_name(f"{output_path.stem}_audit.json")
         audit_path = save_audit_rows_json(audit_rows, audit_json_path)
-    raw_path = save_raw_reports_json(data, output_path)
+    raw_path = None
     return ExportResult(output_path=output_path, audit_path=audit_path, raw_path=raw_path, summary=summary)
 
 

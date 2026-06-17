@@ -5,7 +5,7 @@ from inspect import isawaitable
 from typing import Any
 
 
-MAXAWON_HOME_URL = "https://www.maxawon.com/"
+MAXAWON_HOME_URL = "https://www.cretop.com/"
 MAXAWON_EXPIRED_MARKERS = (
     "페이지가 만료되었습니다",
     "[8004]",

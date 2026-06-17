@@ -6,6 +6,7 @@ import shutil
 import signal
 import subprocess
 import threading
+from datetime import datetime
 from pathlib import Path
 from tkinter import DISABLED, END, NORMAL, StringVar, Tk, filedialog, messagebox, ttk
 
@@ -18,7 +19,7 @@ from maxawon.table_capture import (
 )
 
 
-MAXAWON_URL = "https://www.maxawon.com/"
+MAXAWON_URL = "https://www.cretop.com/"
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PROFILE_DIR = PROJECT_ROOT / ".chrome-profile"
 DEFAULT_CAPTURE_OUTPUT = PROJECT_ROOT / "output" / "maxawon_condition_search.csv"
@@ -217,10 +218,15 @@ class MaxawonApp:
         ttk.Label(log_frame, text="활동 로그", style="CardTitle.TLabel").grid(
             row=0, column=0, sticky="w", pady=(0, 10)
         )
-        self.log = ttk.Treeview(log_frame, columns=("message",), show="headings", height=5)
+        self.log = ttk.Treeview(log_frame, columns=("time", "message"), show="headings", height=5)
+        self.log.heading("time", text="시간")
         self.log.heading("message", text="메시지")
-        self.log.column("message", width=900, stretch=True)
+        self.log.column("time", width=90, stretch=False)
+        self.log.column("message", width=810, stretch=True)
         self.log.grid(row=1, column=0, sticky="ew")
+        log_scroll = ttk.Scrollbar(log_frame, orient="vertical", command=self.log.yview)
+        log_scroll.grid(row=1, column=1, sticky="ns")
+        self.log.configure(yscrollcommand=log_scroll.set)
 
         self.add_log("Chrome을 열고 직접 로그인한 뒤 '로그인 완료'를 누르세요.")
 
@@ -517,9 +523,12 @@ class MaxawonApp:
 
     def _run_table_capture(self, max_pages: int, output_path: Path) -> None:
         try:
+            self.root.after(0, self.add_log, "Chrome 원격 디버깅 세션에 연결하고 현재 Maxawon 화면을 확인합니다.")
+            self.root.after(0, self.add_log, "조건검색 결과 테이블과 다음 페이지 여부를 읽는 중입니다.")
             result = capture_current_maxawon_table_sync(max_pages=max_pages)
             if not result.rows:
                 raise RuntimeError("현재 화면에서 복사할 테이블 데이터를 찾지 못했습니다.")
+            self.root.after(0, self.add_log, f"조건검색 결과 {result.pages}페이지, {len(result.rows)}행을 읽었습니다.")
             output_path.parent.mkdir(parents=True, exist_ok=True)
             write_table_csv(
                 output_path,
@@ -546,7 +555,8 @@ class MaxawonApp:
         messagebox.showerror("복사 실패", message)
 
     def add_log(self, message: str) -> None:
-        self.log.insert("", END, values=(message,))
+        logged_at = datetime.now().strftime("%H:%M:%S")
+        self.log.insert("", END, values=(logged_at, message))
         children = self.log.get_children()
         if children:
             self.log.see(children[-1])

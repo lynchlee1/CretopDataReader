@@ -1,6 +1,6 @@
 {
   "name": "maxawon-desktop",
-  "version": "2.6.1",
+  "version": "2.7.0",
   "private": true,
   "description": "Modern Electron desktop UI for Maxawon",
   "main": "electron/main.js",
@@ -13,6 +13,7 @@
     "desktop:dev": "electron . --dev",
     "test:node": "node --test tests/*.test.js",
     "build:python": "node scripts/build-python-worker.js",
+    "build:resources": "node scripts/build-release-resources.js",
     "dist": "npm run build:python && electron-builder --win",
     "dist:mac": "npm run build:python && electron-builder --mac",
     "dist:dir": "npm run build:python && electron-builder --dir"
@@ -107,13 +108,6 @@
       {
         "from": "src/xml_loader.py",
         "to": "src/xml_loader.py"
-      },
-      {
-        "from": "templates",
-        "to": "templates",
-        "filter": [
-          "**/*"
-        ]
       }
     ],
     "win": {

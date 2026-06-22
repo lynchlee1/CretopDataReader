@@ -10,6 +10,7 @@ const {
   checkPythonRuntime,
   formatPythonRuntimeError,
 } = require("./runtime-check");
+const { ensureTemplateResources, templatesDir } = require("./resource-manager");
 
 const projectRoot = path.resolve(__dirname, "..");
 const runtimeRoot = app.getPath("userData");
@@ -22,10 +23,12 @@ const defaultPptOutput = path.join(os.homedir(), "Downloads", `Deal_Summary_${Da
 const defaultWeeklyMezzOutput = path.join(os.homedir(), "Downloads", `weekly_mezz_${Date.now()}.xlsx`);
 const pptForgerSettingsPath = path.join(runtimeRoot, "ppt-forger-settings.json");
 const filePathsSettingsPath = path.join(runtimeRoot, "file-paths.json");
-const defaultPptTemplateDir = path.join(app.isPackaged ? process.resourcesPath : projectRoot, "templates", "Deal_Summary_Template_1.0");
+const defaultPptTemplateDir = templatesDir(app, projectRoot);
 const remoteDebuggingPort = "9222";
 const cretopUrl = "https://www.cretop.com/";
 const updateFeed = "https://github.com/lynchlee1/Maxawon/releases";
+const githubOwner = "lynchlee1";
+const githubRepo = "Maxawon";
 const filePathKeys = new Set(["captureOutput", "weeklyMezzOutput", "pptTemplate", "pptExcel", "pptOutput"]);
 const networkLoggingEnabled = process.env.MAXAWON_NETWORK_LOGS === "1";
 
@@ -38,6 +41,16 @@ autoUpdater.autoDownload = false;
 
 function getProjectVersion() {
   return app.getVersion();
+}
+
+async function getDefaultPptTemplateDir() {
+  return ensureTemplateResources({
+    app,
+    projectRoot,
+    processResourcesPath: process.resourcesPath,
+    owner: githubOwner,
+    repo: githubRepo,
+  });
 }
 
 function readFilePathSettings() {
@@ -437,7 +450,7 @@ function findChrome() {
   return null;
 }
 
-ipcMain.handle("app:get-defaults", () => ({
+ipcMain.handle("app:get-defaults", async () => ({
   defaultCaptureOutput,
   defaultPptOutput,
   defaultWeeklyMezzOutput,
@@ -449,7 +462,7 @@ ipcMain.handle("app:get-defaults", () => ({
   updateFeed,
   updatesSupported: app.isPackaged,
   pptForgerSettingsPath,
-  defaultPptTemplateDir,
+  defaultPptTemplateDir: await getDefaultPptTemplateDir(),
   pythonRuntime: getPythonRuntimeStatus(),
 }));
 
@@ -663,7 +676,7 @@ ipcMain.handle("app:ppt-get-gemini-settings", async () => {
   const settings = readSettings(pptForgerSettingsPath);
   return {
     ...settings,
-    ...resolvePptTemplateFiles(settings.templateDir || defaultPptTemplateDir),
+    ...resolvePptTemplateFiles(settings.templateDir || (await getDefaultPptTemplateDir())),
   };
 });
 
@@ -672,7 +685,7 @@ ipcMain.handle("app:ppt-save-gemini-settings", async (_event, settings) => {
   const saved = writeSettings(pptForgerSettingsPath, settings || {});
   return {
     ...saved,
-    ...resolvePptTemplateFiles(saved.templateDir || defaultPptTemplateDir),
+    ...resolvePptTemplateFiles(saved.templateDir || (await getDefaultPptTemplateDir())),
   };
 });
 

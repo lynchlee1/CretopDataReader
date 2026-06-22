@@ -10,6 +10,8 @@ at runtime.
 - `dist-python/maxawon-worker`: bundled Python worker copied to `bin/`.
 - Python runtime modules under `src/**`, copied through `extraResources` so
   development runs can import them as normal files.
+- Runtime-managed resources such as `templates/**` are uploaded as separate
+  GitHub Release assets and downloaded into Electron's `userData` directory.
 
 ## Runtime prerequisite
 
@@ -43,6 +45,8 @@ npm run build:python
 - Runtime capture output such as `output/**`.
 - User-provided or exported business data such as `data/**`, `input/**`,
   `exports/**`, `downloads/**`, `*.xlsx`, `*.xlsm`, `*.xls`, and `*.csv`.
+- Runtime-managed resources such as `templates/**`; package them with
+  `npm run build:resources` instead of embedding them in the installer.
 - Playwright browser downloads such as `ms-playwright/**`,
   `.local-browsers/**`, `chromium*/**`, and `chrome-*/**`.
 
@@ -54,6 +58,7 @@ inside the installed application directory.
 - Chrome profile: `<userData>/chrome-profile`
 - Network logs: `<userData>/network-logs` when `MAXAWON_NETWORK_LOGS=1`
 - Default table capture output: `<userData>/output/maxawon_condition_search.csv`
+- Release resources: `<userData>/resources`
 
 ## Browser policy
 

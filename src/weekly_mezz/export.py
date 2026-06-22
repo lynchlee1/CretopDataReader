@@ -3,6 +3,7 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlencode
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -14,6 +15,7 @@ from weekly_mezz.parser import parse_report_document
 
 INCLUSION_KEYWORDS = [["전환사채", "교환사채", "신주인수권부사채"], "발행"]
 DART_MAIN_URL = "https://dart.fss.or.kr/dsaf001/main.do?rcpNo={rcept_no}"
+KIND_DISCLOSURE_VIEWER_URL = "https://kind.krx.co.kr/common/disclsviewer.do"
 # Developer-only diagnostic output. Keep this False for release builds.
 ENABLE_AUDIT_JSON = False
 
@@ -23,6 +25,7 @@ BORDER_SIDE = Side(style="thin", color="263244")
 HEADER_BORDER = Border(left=BORDER_SIDE, right=BORDER_SIDE, top=BORDER_SIDE, bottom=BORDER_SIDE)
 BODY_BORDER = Border(left=BORDER_SIDE, right=BORDER_SIDE, top=BORDER_SIDE, bottom=BORDER_SIDE)
 HEADER_ALIGNMENT = Alignment(horizontal="center", vertical="center", wrap_text=True)
+BLANK_CELL_VALUE = "-"
 
 SHARE_TYPE_SUFFIX_PATTERN = re.compile(
     r"\s*(?:(?:기명식|무기명식)\s*)?(?:보통주식?|우선주식?|전환우선주식?|상환우선주식?|상환전환우선주식?|종류주식)\s*$"
@@ -39,6 +42,7 @@ ISSUER_MARKET_LABELS = {
 
 COLUMN_SPECS = [
     {"header": "헤더", "key": "report_header", "width": 12, "align": "center"},
+    {"header": "최초공시일", "key": "initial_filing_date_display", "width": 12, "align": "center"},
     {"header": "공시일", "key": "filing_date_display", "width": 12, "align": "center"},
     {"header": "납입일", "key": "issue_date_display", "width": 12, "align": "center"},
     {"header": "발행사 기업명", "key": "issuer_company_name", "width": 20, "align": "left", "margin": True},
@@ -60,6 +64,7 @@ COLUMN_SPECS = [
     {"header": "섹터", "key": "sector_blank", "width": 12, "align": "left", "margin": True},
     {"header": "당사검토", "key": "internal_review", "width": 12, "align": "left", "margin": True},
     {"header": "주관", "key": "lead_blank", "width": 12, "align": "left", "margin": True},
+    {"header": "URL", "key": "disclosure_url", "width": 52, "align": "left", "margin": True},
 ]
 
 NUMERIC_KEYS = {
@@ -176,6 +181,20 @@ def build_dart_link(rcept_no) -> str:
     return DART_MAIN_URL.format(rcept_no=value) if value else ""
 
 
+def build_kind_link(acpt_no, doc_no="") -> str:
+    value = (acpt_no or "").strip()
+    if not value:
+        return ""
+    return f"{KIND_DISCLOSURE_VIEWER_URL}?{urlencode({'method': 'search', 'acptno': value, 'docno': doc_no or '', 'viewerhost': '', 'viewerport': ''})}"
+
+
+def build_disclosure_link(report: dict) -> str:
+    acpt_no = report.get("acpt_no")
+    if acpt_no:
+        return build_kind_link(acpt_no, report.get("doc_no") or "")
+    return build_dart_link(report.get("rcept_no"))
+
+
 def extract_filing_date_from_rcept_no(rcept_no) -> str:
     value = (rcept_no or "").strip()
     if not re.fullmatch(r"\d{14}", value):
@@ -220,6 +239,12 @@ def parse_iso_date(value):
 def format_short_date(value) -> str:
     parsed = parse_iso_date(value)
     return parsed.strftime("%y-%m-%d") if parsed else ""
+
+
+def normalize_text_value(value) -> str:
+    if value in (None, "-"):
+        return ""
+    return str(value).strip()
 
 
 def format_rate_text(value, prefix: str = "") -> str:
@@ -364,18 +389,22 @@ def build_export_row(
     put_schedules = parsed.get("PUT옵션일정표") or parsed.get("_PUT옵션일정표상세") or []
     call_schedules = parsed.get("CALL옵션일정표") or parsed.get("_CALL옵션일정표상세") or []
     filing_date = extract_filing_date_from_rcept_no(report.get("rcept_no"))
+    initial_filing_date = normalize_text_value(parsed.get("최초공시일")) or extract_filing_date_from_rcept_no(previous_rcept_no) or filing_date
     maturity_date = (parsed.get("만기일") or "") if parsed.get("만기일") != "-" else ""
     refixing_floor_pct = parse_numeric_value(
         parsed.get("리픽싱(%)") if parsed.get("리픽싱(%)") is not None else parsed.get("리픽싱가격")
     )
     refixing_reason = parsed.get("리픽싱사유") or parsed.get("리픽싱내용") or ""
-    refixing_reason = "" if refixing_reason in (None, "-") else str(refixing_reason).strip()
+    refixing_reason = normalize_text_value(refixing_reason)
     premium_text = parsed.get("전환가액 결정방법") or parsed.get("할증관련텍스트") or ""
     if isinstance(premium_text, (list, tuple)):
         premium_text = " ".join(str(value) for value in premium_text if value not in (None, ""))
+    premium_text = normalize_text_value(premium_text)
 
     return {
         "rcept_no": report.get("rcept_no", ""),
+        "initial_filing_date": initial_filing_date,
+        "initial_filing_date_display": format_short_date(initial_filing_date),
         "filing_date": filing_date,
         "filing_date_display": format_short_date(filing_date),
         "report_header": extract_report_header(report.get("report_nm")),
@@ -421,6 +450,7 @@ def build_export_row(
         "lead_blank": "",
         "underwriter": "",
         "dart_link": build_dart_link(report.get("rcept_no")),
+        "disclosure_url": build_disclosure_link(report),
         "previous_rcept_no": previous_rcept_no,
     }
 
@@ -566,10 +596,18 @@ def _style_header_cell(cell) -> None:
 def _write_rows(sheet, rows: list[dict]) -> None:
     for row_index, row in enumerate(rows, start=2):
         for column_index, spec in enumerate(COLUMN_SPECS, start=1):
-            value = row.get(spec["key"], "")
+            value = _display_cell_value(row.get(spec["key"], ""))
             cell = sheet.cell(row=row_index, column=column_index, value=value)
             _style_body_cell(cell, spec)
         sheet.row_dimensions[row_index].height = 42
+
+
+def _display_cell_value(value):
+    if value is None:
+        return BLANK_CELL_VALUE
+    if isinstance(value, str) and not value.strip():
+        return BLANK_CELL_VALUE
+    return value
 
 
 def _style_body_cell(cell, spec: dict) -> None:
@@ -585,3 +623,6 @@ def _style_body_cell(cell, spec: dict) -> None:
         cell.number_format = "#,##0"
     elif key in DECIMAL_FORMAT_KEYS and isinstance(cell.value, (int, float)):
         cell.number_format = "0.0"
+    elif key == "disclosure_url" and cell.value != BLANK_CELL_VALUE:
+        cell.hyperlink = cell.value
+        cell.style = "Hyperlink"

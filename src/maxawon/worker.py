@@ -49,7 +49,7 @@ def weekly_mezz_collect(args: argparse.Namespace) -> int:
         parse_yyyymmdd(args.from_date),
         parse_yyyymmdd(args.to_date),
         Path(args.output_path).expanduser(),
-        last_reprt_at=args.last_report_value or "Y",
+        last_reprt_at=args.last_report_value or "ALL",
     )
     print_json(
         {
@@ -85,7 +85,7 @@ def build_parser() -> argparse.ArgumentParser:
     weekly_parser.add_argument("--from-date", required=True)
     weekly_parser.add_argument("--to-date", required=True)
     weekly_parser.add_argument("--output-path", required=True)
-    weekly_parser.add_argument("--last-report-value", default="Y")
+    weekly_parser.add_argument("--last-report-value", default="ALL")
     weekly_parser.set_defaults(func=weekly_mezz_collect)
 
     logger_parser = subparsers.add_parser("network-logger")

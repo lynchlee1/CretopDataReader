@@ -24,6 +24,19 @@ class MezzanineCollectorApp:
     PANEL = "#FFFFFF"
     TEXT = "#111827"
     MUTED = "#64748B"
+    FILTER_LABEL_TO_VALUE = {
+        "전체": "ALL",
+        "최종보고서만": "Y",
+        "최초보고서만": "N",
+        "ALL": "ALL",
+        "Y": "Y",
+        "N": "N",
+    }
+    FILTER_VALUE_TO_LABEL = {
+        "ALL": "전체",
+        "Y": "최종보고서만",
+        "N": "최초보고서만",
+    }
 
     def __init__(self):
         if ttk is None:
@@ -48,7 +61,8 @@ class MezzanineCollectorApp:
         self.start_date_var = tk.StringVar(value=get_config_value("start_date", format_yyyymmdd(default_start)))
         self.end_date_var = tk.StringVar(value=get_config_value("end_date", format_yyyymmdd(default_end)))
         self.output_path_var = tk.StringVar(value=get_config_value("output_path", str(default_output_path())))
-        self.last_reprt_at_var = tk.StringVar(value=get_config_value("last_reprt_at", "Y"))
+        last_reprt_at = str(get_config_value("last_reprt_at", "ALL")).strip().upper()
+        self.last_reprt_at_var = tk.StringVar(value=self.FILTER_VALUE_TO_LABEL.get(last_reprt_at, last_reprt_at))
 
     def _build_layout(self):
         self.root.configure(bg=self.BG)
@@ -84,7 +98,7 @@ class MezzanineCollectorApp:
 
         final_box = ttk.Frame(settings)
         final_box.grid(row=1, column=3, sticky="nw", padx=(18, 0), pady=(14, 0))
-        ttk.Label(final_box, text="최종보고서만(Y/N)", font=("Malgun Gothic", 11, "bold"), foreground=self.MUTED).grid(
+        ttk.Label(final_box, text="필터링 옵션", font=("Malgun Gothic", 11, "bold"), foreground=self.MUTED).grid(
             row=0,
             column=0,
             sticky="w",
@@ -93,9 +107,9 @@ class MezzanineCollectorApp:
         ttk.Combobox(
             final_box,
             textvariable=self.last_reprt_at_var,
-            values=("Y", "N"),
+            values=("전체", "최종보고서만", "최초보고서만"),
             state="readonly",
-            width=6,
+            width=12,
             font=("Arial", 11),
         ).grid(row=1, column=0, sticky="w", ipady=5)
 
@@ -167,20 +181,25 @@ class MezzanineCollectorApp:
             )
 
     def _normalize_last_report_value(self):
-        value = self.last_reprt_at_var.get().strip().upper() or "Y"
-        if value not in {"Y", "N"}:
-            messagebox.showerror("주간 메자닌 발행현황", "최종보고서만 값은 Y 또는 N이어야 합니다.")
-            return False
-        self.last_reprt_at_var.set(value)
-        return True
+        value = self._current_filter_value()
+        if value not in {"ALL", "Y", "N"}:
+            messagebox.showerror("주간 메자닌 발행현황", "필터링 옵션 값이 올바르지 않습니다.")
+            return ""
+        self.last_reprt_at_var.set(self.FILTER_VALUE_TO_LABEL[value])
+        return value
+
+    def _current_filter_value(self):
+        value = self.last_reprt_at_var.get().strip()
+        return self.FILTER_LABEL_TO_VALUE.get(value, self.FILTER_LABEL_TO_VALUE.get(value.upper(), value.upper()))
 
     def save_settings(self):
-        if not self._normalize_last_report_value():
+        last_reprt_at = self._normalize_last_report_value()
+        if not last_reprt_at:
             return False
         set_config_value("start_date", self.start_date_var.get())
         set_config_value("end_date", self.end_date_var.get())
         set_config_value("output_path", self.output_path_var.get())
-        set_config_value("last_reprt_at", self.last_reprt_at_var.get())
+        set_config_value("last_reprt_at", last_reprt_at)
         self._append_log("Settings saved.")
         return True
 
@@ -221,7 +240,7 @@ class MezzanineCollectorApp:
                 start_date,
                 end_date,
                 self.output_path_var.get(),
-                last_reprt_at=self.last_reprt_at_var.get(),
+                last_reprt_at=self._current_filter_value(),
                 progress_callback=self._progress_callback,
             )
             self.last_output_path = result.output_path

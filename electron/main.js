@@ -730,6 +730,6 @@ ipcMain.handle("app:weekly-mezz-collect", (_event, payload) =>
     "--output-path",
     payload.outputPath,
     "--last-report-value",
-    payload.lastReportValue || "Y",
+    payload.lastReportValue || "ALL",
   ]),
 );

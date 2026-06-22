@@ -43,7 +43,7 @@ def collect_and_export(
     end_date: date,
     output_path,
     audit_json_path=None,
-    last_reprt_at: str = "N",
+    last_reprt_at: str = "ALL",
     progress_callback=None,
 ):
     validate_period(start_date, end_date)
@@ -73,7 +73,7 @@ def build_parser() -> argparse.ArgumentParser:
     collect_parser.add_argument("--to", dest="to_date", default=format_yyyymmdd(default_end))
     collect_parser.add_argument("--output", default=str(default_output_path()))
     collect_parser.add_argument("--audit-json", default="")
-    collect_parser.add_argument("--last-reprt-at", default="N", choices=("Y", "N"))
+    collect_parser.add_argument("--last-reprt-at", default="ALL", choices=("ALL", "Y", "N"))
     return parser
 
 

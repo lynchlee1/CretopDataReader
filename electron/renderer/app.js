@@ -736,9 +736,9 @@ async function runWeeklyMezz() {
     window.alert("저장 파일을 선택하세요.");
     return;
   }
-  const lastReportValue = inputValue("#weeklyMezzLastOnly").toUpperCase() || "Y";
-  if (!["Y", "N"].includes(lastReportValue)) {
-    window.alert("최종보고서만 값은 Y 또는 N이어야 합니다.");
+  const lastReportValue = inputValue("#weeklyMezzLastOnly").toUpperCase() || "ALL";
+  if (!["ALL", "Y", "N"].includes(lastReportValue)) {
+    window.alert("필터링 옵션 값이 올바르지 않습니다.");
     return;
   }
 
@@ -747,7 +747,7 @@ async function runWeeklyMezz() {
   addLog(`주간 메자닌 발행현황 수집을 시작합니다: ${fromDate} ~ ${toDate}`);
   try {
     addLog("KIND 공시 목록을 조회하고 대상 보고서를 필터링합니다.");
-    addLog(`최종보고서만 조건을 적용합니다: ${lastReportValue}`);
+    addLog(`필터링 옵션을 적용합니다: ${lastReportValue}`);
     const result = await window.maxawon.weeklyMezzCollect({
       fromDate: compactDate(fromDate),
       toDate: compactDate(toDate),

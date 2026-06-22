@@ -43,22 +43,25 @@ def parse_bond_issuance_html(html_text: str | bytes, *, file_path: str | Path, r
     report = report or {}
     document = _parse_html_document(html_text)
     raw_tables = _extract_tables(document)
-    rows = _main_bond_rows(raw_tables)
+    main_table = _main_bond_table(raw_tables)
+    rows = (main_table or {}).get("logical_rows") or []
     record = _base_record(document, raw_tables, file_path, report)
 
     soup = BeautifulSoup(_decode(html_text), "html.parser")
     soups = [soup]
     bs_tables = soup.find_all(["table", "TABLE"])
+    main_bs_tables = _matching_bs_tables(bs_tables, main_table)
     document_text = _clean_text(" ".join(document.itertext())) or combine_document_text(soups)
-    option_sections = find_option_sections(document_text)
+    main_document_text = _rows_text(rows) or document_text
+    option_sections = find_option_sections(main_document_text)
     is_bw = _is_bond_with_warrant(rows) or infer_security_type(report.get("report_nm", "")) == "BW"
 
     record["종류"] = "BW" if is_bw else infer_security_type(report.get("report_nm") or record.get("title") or "")
     record.update(
         {
             "회차": _value_after(_row_containing(rows, "사채의 종류"), "회차"),
-            "발행금액": _amount_eok(_last_int(_row_containing(rows, "사채의 권면"))),
-            "발행금액(억)": _amount_eok(_last_int(_row_containing(rows, "사채의 권면"))),
+            "발행금액": _amount_eok(_issue_amount_won(rows)),
+            "발행금액(억)": _amount_eok(_issue_amount_won(rows)),
             "발행목적": _funding_purposes(rows),
             "표면이율": _format_rate(_interest_rate(rows, "표면이자율", "표면이율")),
             "만기이율": _format_rate(_interest_rate(rows, "만기이자율", "만기보장수익", "만기이율")),
@@ -77,18 +80,18 @@ def parse_bond_issuance_html(html_text: str | bytes, *, file_path: str | Path, r
         }
     )
 
-    _populate_refixing(record, rows, document_text)
+    _populate_refixing(record, rows, main_document_text)
     if not is_bw:
-        populate_premium_fields(record, record.get("전환가액 결정방법") or document_text)
+        populate_premium_fields(record, record.get("전환가액 결정방법") or main_document_text)
     populate_maturity_term(record)
     populate_participant_fields(record, bs_tables)
     _merge_current_participant_targets(record)
-    populate_option_section_metadata(record, option_sections, document_text)
+    populate_option_section_metadata(record, option_sections, main_document_text)
     if rows:
-        populate_option_schedule_fields(record, bs_tables, option_sections)
+        populate_option_schedule_fields(record, main_bs_tables, option_sections)
     else:
         populate_text_only_option_fields(record, option_sections)
-    populate_option_presence_status_fields(record, bs_tables, option_sections, document_text)
+    populate_option_presence_status_fields(record, main_bs_tables, option_sections, main_document_text)
     return record
 
 
@@ -122,6 +125,7 @@ def _base_record(document, raw_tables, file_path, report):
     return {
         "title": title,
         "공시제목": title,
+        "최초공시일": _initial_submission_date(raw_tables),
         "rcept_no": rcept_no or report.get("rcept_no") or acpt_no,
         "acpt_no": acpt_no,
         "source_file": str(Path(file_path).resolve()),
@@ -221,13 +225,30 @@ def _extract_tables(document):
         grid = _expand_table(table)
         rows = [_compress([slot["text"] for slot in row]) for row in grid]
         rows = [row for row in rows if row]
-        tables.append({"index": index, "chapter_title": _nearest_chapter_title(table), "cells": grid, "logical_rows": rows})
+        chapter = _nearest_chapter(table)
+        tables.append(
+            {
+                "index": index,
+                "class": _clean_text(table.get("class")),
+                "chapter_id": chapter.get("id", ""),
+                "chapter_title": chapter.get("title", ""),
+                "cells": grid,
+                "logical_rows": rows,
+            }
+        )
     return tables
 
 
-def _nearest_chapter_title(table):
+def _nearest_chapter(table):
     nodes = table.xpath("preceding::*[self::h1 or self::h2 or self::h3 or self::h4 or self::h5 or self::h6 or (self::p and contains(concat(' ', normalize-space(@class), ' '), ' CORRECTION ')) or (self::p and contains(concat(' ', normalize-space(@class), ' '), ' SECTION-'))][1]")
-    return _element_text(nodes[0]) if nodes else ""
+    if not nodes:
+        return {"id": "", "title": ""}
+    node = nodes[0]
+    return {"id": _clean_text(node.get("id")), "title": _element_text(node)}
+
+
+def _nearest_chapter_title(table):
+    return _nearest_chapter(table).get("title", "")
 
 
 def _is_correction_chapter(table):
@@ -244,22 +265,68 @@ def _row_containing(rows, *needles):
     return next((row for row in rows if _row_contains(row, *needles)), [])
 
 
-def _main_bond_rows(raw_tables):
+def _main_bond_table(raw_tables):
+    for table in raw_tables:
+        if not _is_body_section_table(table):
+            continue
+        if _is_formatted_data_table(table):
+            return table
     for table in raw_tables:
         if _is_correction_chapter(table):
             continue
         rows = table.get("logical_rows") or []
         if any(_row_contains(row, "사채의 종류") for row in rows) and any(_row_contains(row, "사채의 권면") for row in rows) and any(_row_contains(row, "자금조달의 목적") for row in rows):
-            return rows
+            return table
+    return None
+
+
+def _main_bond_rows(raw_tables):
+    table = _main_bond_table(raw_tables)
+    return (table or {}).get("logical_rows") or []
+
+
+def _is_body_section_table(table):
+    if _is_correction_chapter(table):
+        return False
+    chapter_id = str(table.get("chapter_id") or "")
+    chapter_title = str(table.get("chapter_title") or "")
+    return chapter_id.startswith("toc_") or "주요사항보고서" in chapter_title or "거래소 신고" in chapter_title
+
+
+def _is_formatted_data_table(table):
+    class_names = f" {table.get('class') or ''} "
+    return " TABLE " in class_names
+
+
+def _matching_bs_tables(bs_tables, raw_table):
+    if raw_table is None:
+        return []
+    index = raw_table.get("index")
+    if isinstance(index, int) and 0 <= index < len(bs_tables):
+        return [bs_tables[index]]
     return []
 
 
+def _rows_text(rows):
+    return _clean_text(" ".join(" ".join(row) for row in rows or []))
+
+
 def _normalize_label(value):
-    return re.sub(r"^\d+(?:-\d+)?\.\s*", "", _clean_text(value))
+    return re.sub(r"^\d+(?:-\d+)?\.\s*", "", _clean_text(value)).rstrip(" :：")
 
 
 def _row_with_label(rows, label):
     return next((row for row in rows if any(_normalize_label(value) == label for value in row)), [])
+
+
+def _values_after_label(row, *labels):
+    for index, value in enumerate(row):
+        normalized = _normalize_label(value)
+        compact = normalized.replace(" ", "")
+        for label in labels:
+            if normalized == label or compact == label.replace(" ", ""):
+                return row[index + 1 :]
+    return []
 
 
 def _value_after(row, label):
@@ -275,6 +342,15 @@ def _last_value(row):
 
 def _last_int(row):
     for value in reversed(row):
+        parsed = _parse_int(value)
+        if parsed is not None:
+            return parsed
+    return None
+
+
+def _last_int_after_label(row, *labels):
+    values = _values_after_label(row, *labels)
+    for value in reversed(values):
         parsed = _parse_int(value)
         if parsed is not None:
             return parsed
@@ -332,17 +408,37 @@ def _exercise_period_value(rows, boundary_label):
 
 def _exercise_price(rows):
     for label in ("전환가액", "교환가액", "행사가액"):
-        value = _last_int(_row_containing(rows, label, "원"))
+        value = _last_int_after_label(
+            _row_containing(rows, label, "원"),
+            f"{label} (원/주)",
+            f"{label}(원/주)",
+            f"{label} (원)",
+            f"{label}(원)",
+            label,
+        )
         if value is not None:
             return value
     return None
 
 
+def _issue_amount_won(rows):
+    return _last_int_after_label(
+        _row_containing(rows, "사채의 권면"),
+        "사채의 권면(전자등록)총액 (원)",
+        "사채의 권면(전자등록)총액(원)",
+        "사채의 권면총액 (원)",
+        "사채의 권면총액(원)",
+        "사채의 권면(전자등록)총액",
+        "사채의 권면총액",
+    )
+
+
 def _decision_method_text(rows):
     for label in ("전환가액 결정방법", "교환가액 결정방법", "행사가액 결정방법", "전환가격 결정방법", "교환가격 결정방법", "행사가격 결정방법"):
         row = _row_containing(rows, label)
-        if len(row) > 1:
-            return " ".join(row[1:])
+        values = _values_after_label(row, label)
+        if values:
+            return " ".join(values)
     return ""
 
 
@@ -362,10 +458,20 @@ def _payment_method(rows):
     return None
 
 
+def _initial_submission_date(raw_tables):
+    for table in raw_tables:
+        rows = table.get("logical_rows") or []
+        for row in rows:
+            values = _values_after_label(row, "정정대상 공시서류의 최초제출일")
+            if values:
+                return _parse_date_or_raw(values[0])
+    return None
+
+
 def _funding_purposes(rows):
     purposes = []
     for label in FUNDING_PURPOSE_LABELS:
-        value = _last_int(_row_containing(rows, "자금조달의 목적", label))
+        value = _last_int_after_label(_row_containing(rows, "자금조달의 목적", label), label, f"{label} (원)", f"{label}(원)")
         purposes.append([label, 0 if value is None else value])
     return purposes
 
@@ -374,15 +480,22 @@ def _populate_refixing(record, rows, document_text):
     won = None
     row = _row_containing(rows, "시가하락")
     if row:
-        won = _last_int(row)
-    refix_text = " ".join(
-        _row_containing(rows, "조정가액 근거")
-        or _row_containing(rows, "전환가액 조정에 관한 사항")
-        or _row_containing(rows, "교환가액 조정에 관한 사항")
-        or _row_containing(rows, "행사가액 조정에 관한 사항")
-        or _row_containing(rows, "전환가액 조정")
-        or _row_containing(rows, "행사가액 조정")
-    ) or document_text
+        won = _last_int_after_label(row, "최저 조정가액 (원)", "최저 조정가액(원)", "시가하락에 따른 전환가액 조정", "시가하락에 따른 행사가액 조정")
+    refix_text = ""
+    for label in (
+        "최저 조정가액 근거",
+        "전환가액 조정에 관한 사항",
+        "교환가액 조정에 관한 사항",
+        "행사가액 조정에 관한 사항",
+        "전환가액 조정",
+        "행사가액 조정",
+    ):
+        refix_row = _row_containing(rows, label)
+        values = _values_after_label(refix_row, label)
+        if values:
+            refix_text = " ".join(values)
+            break
+    refix_text = refix_text or (document_text if not rows else "")
     record["리픽싱(원)"] = won
     record["리픽싱사유"] = refix_text if refix_text else None
     temp = {"리픽싱가격": "-", "리픽싱주가": "-", "_리픽싱원문": refix_text}

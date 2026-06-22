@@ -139,7 +139,7 @@ def _build_search_payload(
     end_date: date,
     page_no: int,
     page_count: int = 100,
-    last_reprt_at: str = "N",
+    last_reprt_at: str = "ALL",
 ) -> dict[str, str]:
     payload = [
         ("method", "searchDetailsSub"),
@@ -173,10 +173,11 @@ def _build_search_payload(
     ]
     for suffix in ("02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "13", "14", "20"):
         payload.extend(((f"disclosureType{suffix}", ""), (f"pDisclosureType{suffix}", "")))
-    if (last_reprt_at or "N").upper() == "Y":
+    normalized_last_reprt_at = (last_reprt_at or "ALL").upper()
+    if normalized_last_reprt_at == "Y":
         payload.append(("lastReport", "T"))
         payload.append(("bfrDsclsType", ""))
-    else:
+    elif normalized_last_reprt_at == "N":
         payload.append(("bfrDsclsType", "on"))
     return payload
 
@@ -364,14 +365,14 @@ def fetch_mezzanine_reports(
     end_date: date,
     *,
     output_dir=None,
-    last_reprt_at: str = "N",
+    last_reprt_at: str = "ALL",
     max_requests_per_minute: int = MAX_REQUESTS_PER_MINUTE,
     html_max_workers: int = DEFAULT_HTML_WORKERS,
     progress_callback=None,
     timeout: int = 30,
 ) -> dict:
-    if (last_reprt_at or "N").upper() not in {"Y", "N"}:
-        raise ValueError("last_reprt_at는 'Y' 또는 'N'이어야 합니다.")
+    if (last_reprt_at or "ALL").upper() not in {"ALL", "Y", "N"}:
+        raise ValueError("last_reprt_at는 'ALL', 'Y' 또는 'N'이어야 합니다.")
     limiter = RateLimiter(max_requests_per_minute)
     output_root = Path(output_dir or Path.home() / "Desktop" / "weekly_mezz_kind").expanduser().resolve()
     list_dir = output_root / "kind_result_pages"

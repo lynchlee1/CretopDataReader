@@ -38,6 +38,10 @@ let downloadedUpdate = false;
 let cachedWorkerRuntimeStatus = null;
 
 autoUpdater.autoDownload = false;
+autoUpdater.requestHeaders = {
+  "Cache-Control": "no-cache",
+  Pragma: "no-cache",
+};
 
 function getProjectVersion() {
   return app.getVersion();

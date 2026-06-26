@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld("maxawon", {
   pptGenerateGemini: (payload) => ipcRenderer.invoke("app:ppt-generate-gemini", payload),
   generatePpt: (payload) => ipcRenderer.invoke("app:generate-ppt", payload),
   weeklyMezzCollect: (payload) => ipcRenderer.invoke("app:weekly-mezz-collect", payload),
+  weeklyMezzToc: (payload) => ipcRenderer.invoke("app:weekly-mezz-toc", payload),
+  openFile: (filePath) => ipcRenderer.invoke("app:open-file", filePath),
   checkForUpdates: () => ipcRenderer.invoke("app:check-for-updates"),
   downloadUpdate: () => ipcRenderer.invoke("app:download-update"),
   installUpdate: () => ipcRenderer.invoke("app:install-update"),

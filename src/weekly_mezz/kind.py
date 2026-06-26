@@ -17,6 +17,7 @@ KIND_DISCLOSURE_VIEWER_URL = "https://kind.krx.co.kr/common/disclsviewer.do"
 VIEWER_HTML_FILENAME_TEMPLATE = "{acpt_no}.html"
 MAX_REQUESTS_PER_MINUTE = 70
 MIN_REQUEST_INTERVAL_SECONDS = 0.0
+DEFAULT_SEARCH_WORKERS = 4
 DEFAULT_HTML_WORKERS = 4
 STOCK_RELATED_BOND_DISCLOSURE_CODE = "0119"
 MEZZANINE_REPORT_SEARCH_TERMS = (
@@ -369,6 +370,48 @@ def _download_report_html(report: dict, *, html_dir: Path, content_dir: Path, li
     }
 
 
+def _fetch_result_page(
+    *,
+    start_date: date,
+    end_date: date,
+    page_no: int,
+    last_reprt_at: str,
+    list_dir: Path,
+    limiter: RateLimiter,
+    timeout: int,
+    session: requests.Session | None = None,
+) -> bytes:
+    owns_session = session is None
+    session = session or _new_kind_session()
+    try:
+        payload = _build_search_payload(
+            start_date=start_date,
+            end_date=end_date,
+            page_no=page_no,
+            last_reprt_at=last_reprt_at,
+        )
+        response = _limited_post(session, limiter, KIND_SEARCH_RESULTS_URL, data=payload, timeout=timeout)
+        response.raise_for_status()
+        page_path = list_dir / f"{page_no:03d}_post_page_{page_no:05d}.body"
+        page_path.write_bytes(response.content)
+        return response.content
+    finally:
+        if owns_session:
+            session.close()
+
+
+def _collect_new_reports(markup: bytes, seen_rcept_numbers: set) -> list[dict]:
+    page_reports = [row for row in _parse_result_rows(markup) if _matches_mezzanine_title(row)]
+    new_reports = []
+    for row in page_reports:
+        rcept_no = row.get("rcept_no")
+        if rcept_no in seen_rcept_numbers:
+            continue
+        seen_rcept_numbers.add(rcept_no)
+        new_reports.append(row)
+    return new_reports
+
+
 def fetch_mezzanine_reports(
     start_date: date,
     end_date: date,
@@ -376,6 +419,7 @@ def fetch_mezzanine_reports(
     output_dir=None,
     last_reprt_at: str = "ALL",
     max_requests_per_minute: int = MAX_REQUESTS_PER_MINUTE,
+    search_max_workers: int = DEFAULT_SEARCH_WORKERS,
     html_max_workers: int = DEFAULT_HTML_WORKERS,
     progress_callback=None,
     timeout: int = 30,
@@ -391,38 +435,54 @@ def fetch_mezzanine_reports(
     html_dir.mkdir(parents=True, exist_ok=True)
     content_dir.mkdir(parents=True, exist_ok=True)
 
+    search_max_workers = max(1, int(search_max_workers or 1))
     html_max_workers = max(1, int(html_max_workers or 1))
     session = _new_kind_session()
     try:
         _limited_get(session, limiter, KIND_SEARCH_PAGE_URL, timeout=timeout).raise_for_status()
         reports = []
         seen_rcept_numbers = set()
-        page_no = 1
-        while True:
-            payload = _build_search_payload(
-                start_date=start_date,
-                end_date=end_date,
-                page_no=page_no,
-                last_reprt_at=last_reprt_at,
-            )
-            response = _limited_post(session, limiter, KIND_SEARCH_RESULTS_URL, data=payload, timeout=timeout)
-            response.raise_for_status()
-            page_path = list_dir / f"{page_no:03d}_post_page_{page_no:05d}.body"
-            page_path.write_bytes(response.content)
-            page_reports = [row for row in _parse_result_rows(response.content) if _matches_mezzanine_title(row)]
-            new_reports = []
-            for row in page_reports:
-                rcept_no = row.get("rcept_no")
-                if rcept_no in seen_rcept_numbers:
-                    continue
-                seen_rcept_numbers.add(rcept_no)
-                new_reports.append(row)
-            if progress_callback:
-                progress_callback(f"KIND results page {page_no}: found {len(new_reports)} new mezzanine disclosures")
-            reports.extend(new_reports)
-            if page_no >= _infer_total_pages(response.content, page_no):
-                break
-            page_no += 1
+        first_page_content = _fetch_result_page(
+            start_date=start_date,
+            end_date=end_date,
+            page_no=1,
+            last_reprt_at=last_reprt_at,
+            list_dir=list_dir,
+            limiter=limiter,
+            timeout=timeout,
+            session=session,
+        )
+        total_pages = _infer_total_pages(first_page_content, 1)
+        new_reports = _collect_new_reports(first_page_content, seen_rcept_numbers)
+        if progress_callback:
+            progress_callback(f"KIND results page 1: found {len(new_reports)} new mezzanine disclosures")
+        reports.extend(new_reports)
+
+        if total_pages > 1:
+            workers = min(search_max_workers, total_pages - 1)
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                future_to_page = {
+                    executor.submit(
+                        _fetch_result_page,
+                        start_date=start_date,
+                        end_date=end_date,
+                        page_no=page_no,
+                        last_reprt_at=last_reprt_at,
+                        list_dir=list_dir,
+                        limiter=limiter,
+                        timeout=timeout,
+                    ): page_no
+                    for page_no in range(2, total_pages + 1)
+                }
+                page_contents = {}
+                for future in as_completed(future_to_page):
+                    page_contents[future_to_page[future]] = future.result()
+
+            for page_no in range(2, total_pages + 1):
+                new_reports = _collect_new_reports(page_contents[page_no], seen_rcept_numbers)
+                if progress_callback:
+                    progress_callback(f"KIND results page {page_no}: found {len(new_reports)} new mezzanine disclosures")
+                reports.extend(new_reports)
 
         if reports:
             completed = 0
@@ -460,7 +520,7 @@ def fetch_mezzanine_reports(
             "bgn_de": _compact_date_text(start_date),
             "end_de": _compact_date_text(end_date),
             "total_count": len(reports),
-            "total_page": page_no,
+            "total_page": total_pages,
             "search_terms": list(MEZZANINE_REPORT_SEARCH_TERMS),
             "list": reports,
         }

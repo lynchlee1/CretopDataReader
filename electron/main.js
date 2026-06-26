@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const { spawn, spawnSync } = require("child_process");
 const fs = require("fs");
@@ -191,11 +191,15 @@ function pythonCommand() {
 
 function workerCommand() {
   if (!app.isPackaged) return pythonCommand();
-  return path.join(process.resourcesPath, "bin", process.platform === "win32" ? "maxawon-worker.exe" : "maxawon-worker");
+  if (process.platform === "win32") {
+    return path.join(process.resourcesPath, "bin", "python", "python.exe");
+  }
+  return path.join(process.resourcesPath, "bin", "python", "bin", "python3");
 }
 
 function workerArgs(args = []) {
-  return app.isPackaged ? args : ["-m", "maxawon.worker", ...args];
+  const workerScript = path.join(process.resourcesPath, "src", "maxawon", "worker.py");
+  return app.isPackaged ? [workerScript, ...args] : ["-m", "maxawon.worker", ...args];
 }
 
 function pythonEnv() {
@@ -750,3 +754,19 @@ ipcMain.handle("app:weekly-mezz-collect", (_event, payload) =>
     payload.lastReportValue || "ALL",
   ]),
 );
+
+ipcMain.handle("app:weekly-mezz-toc", (_event, payload) =>
+  runWorker([
+    "weekly-mezz-toc",
+    "--output-path",
+    payload.outputPath,
+  ]),
+);
+
+ipcMain.handle("app:open-file", async (_event, filePath) => {
+  if (!filePath || typeof filePath !== "string") throw new Error("열 파일 경로가 비어 있습니다.");
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) throw new Error("열 파일을 찾지 못했습니다.");
+  const errorMessage = await shell.openPath(filePath);
+  if (errorMessage) throw new Error(errorMessage);
+  return { path: filePath };
+});

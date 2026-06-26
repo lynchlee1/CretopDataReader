@@ -120,6 +120,20 @@ function bindWeeklyMezzEvents() {
   $("#runWeeklyMezz").addEventListener("click", async () => {
     await runWeeklyMezz();
   });
+
+  $("#loadWeeklyMezzToc").addEventListener("click", async () => {
+    if (!state.weeklyMezzOutput) {
+      window.alert("저장 파일을 먼저 선택하세요.");
+      return;
+    }
+    const result = await runAction(() => window.maxawon.weeklyMezzToc({ outputPath: state.weeklyMezzOutput }));
+    if (!result) return;
+    applyWeeklyMezzTocCombinations(result.tocCombinations || []);
+    addLog(`목차 조합 ${state.weeklyMezzTocCombinations.length}개를 불러왔습니다.`);
+    if (state.weeklyMezzTocCombinations.length === 0) {
+      addLog(`목차 조합 원본을 찾지 못했습니다: ${result.manifestPath}`);
+    }
+  });
 }
 
 function bindPptEvents() {

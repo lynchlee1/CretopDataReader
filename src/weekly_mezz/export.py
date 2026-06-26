@@ -1,5 +1,6 @@
 import json
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -17,6 +18,7 @@ DART_MAIN_URL = "https://dart.fss.or.kr/dsaf001/main.do?rcpNo={rcept_no}"
 KIND_DISCLOSURE_VIEWER_URL = "https://kind.krx.co.kr/common/disclsviewer.do"
 # Developer-only diagnostic output. Keep this False for release builds.
 ENABLE_AUDIT_JSON = False
+DEFAULT_PARSE_WORKERS = 4
 
 HEADER_FILL = PatternFill(fill_type="solid", fgColor="00D084")
 HEADER_FONT = Font(bold=True, color="06110B")
@@ -533,7 +535,59 @@ def build_export_row(
     }
 
 
-def build_export_rows_with_audit(data: dict, progress_callback=None) -> tuple:
+def _build_export_audit_item(report: dict, company_stock_code_map: dict, market_cap_map: dict | None = None) -> dict:
+    parsed = {}
+    parse_error = ""
+    parse_failure = None
+    try:
+        parsed = parse_report_documents(report)
+    except Exception as exc:
+        parse_error = str(exc)
+        parse_failure = {"rcept_no": report.get("rcept_no"), "error": parse_error}
+
+    previous_rcept_no = ""
+    family_lookup_error = ""
+    family_lookup_failure = None
+    try:
+        previous_rcept_no = previous_rcept_no_from_parsed(parsed, report.get("rcept_no", ""))
+        if not previous_rcept_no and not (report.get("html_path") or report.get("source_file")):
+            previous_rcept_no = fetch_previous_family_rcept_no(report.get("rcept_no", ""))
+    except Exception as exc:
+        family_lookup_error = str(exc)
+        family_lookup_failure = {"rcept_no": report.get("rcept_no"), "error": family_lookup_error}
+
+    export_row = build_export_row(
+        report,
+        parsed,
+        company_stock_code_map=company_stock_code_map,
+        market_cap_map=market_cap_map,
+        previous_rcept_no=previous_rcept_no,
+    )
+    audit_row = {
+        "rcept_no": report.get("rcept_no", ""),
+        "report": {
+            "corp_name": report.get("corp_name", ""),
+            "stock_code": report.get("stock_code", ""),
+            "corp_cls": report.get("corp_cls", ""),
+            "report_nm": report.get("report_nm", ""),
+            "rcept_no": report.get("rcept_no", ""),
+            "rcept_dt": report.get("rcept_dt", ""),
+        },
+        "parsed": parsed,
+        "export_row": export_row,
+        "error": parse_error,
+        "family_lookup_error": family_lookup_error,
+    }
+    return {
+        "report": report,
+        "export_row": export_row,
+        "audit_row": audit_row,
+        "parse_failure": parse_failure,
+        "family_lookup_failure": family_lookup_failure,
+    }
+
+
+def build_export_rows_with_audit(data: dict, progress_callback=None, parse_max_workers: int = DEFAULT_PARSE_WORKERS) -> tuple:
     reports = filter_reports(data.get("list", []))
     company_stock_code_map = {}
     market_cap_map = fetch_market_cap_map(progress_callback=progress_callback) if reports else {}
@@ -543,56 +597,31 @@ def build_export_rows_with_audit(data: dict, progress_callback=None) -> tuple:
     parse_failures = []
     family_lookup_failures = []
     total_reports = len(reports)
-    for index, report in enumerate(reports, start=1):
-        if progress_callback:
-            progress_callback(f"파싱 {index}/{total_reports}: {report.get('corp_name', '')} {report.get('rcept_no', '')}")
-        parsed = {}
-        parse_error = ""
-        try:
-            parsed = parse_report_documents(report)
-        except Exception as exc:
-            parse_error = str(exc)
-            parse_failures.append({"rcept_no": report.get("rcept_no"), "error": parse_error})
-            if progress_callback:
-                progress_callback(f"문서 파싱 실패 {report.get('rcept_no', '')}: {exc}")
-
-        previous_rcept_no = ""
-        family_lookup_error = ""
-        try:
-            previous_rcept_no = previous_rcept_no_from_parsed(parsed, report.get("rcept_no", ""))
-            if not previous_rcept_no and not (report.get("html_path") or report.get("source_file")):
-                previous_rcept_no = fetch_previous_family_rcept_no(report.get("rcept_no", ""))
-        except Exception as exc:
-            family_lookup_error = str(exc)
-            family_lookup_failures.append({"rcept_no": report.get("rcept_no"), "error": family_lookup_error})
-            if progress_callback:
-                progress_callback(f"정정이전 조회 실패 {report.get('rcept_no', '')}: {exc}")
-
-        export_row = build_export_row(
-            report,
-            parsed,
-            company_stock_code_map=company_stock_code_map,
-            market_cap_map=market_cap_map,
-            previous_rcept_no=previous_rcept_no,
-        )
-        rows.append(export_row)
-        audit_rows.append(
-            {
-                "rcept_no": report.get("rcept_no", ""),
-                "report": {
-                    "corp_name": report.get("corp_name", ""),
-                    "stock_code": report.get("stock_code", ""),
-                    "corp_cls": report.get("corp_cls", ""),
-                    "report_nm": report.get("report_nm", ""),
-                    "rcept_no": report.get("rcept_no", ""),
-                    "rcept_dt": report.get("rcept_dt", ""),
-                },
-                "parsed": parsed,
-                "export_row": export_row,
-                "error": parse_error,
-                "family_lookup_error": family_lookup_error,
+    parse_max_workers = max(1, int(parse_max_workers or 1))
+    if reports:
+        workers = min(parse_max_workers, total_reports)
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            future_to_report = {
+                executor.submit(_build_export_audit_item, report, company_stock_code_map, market_cap_map): report
+                for report in reports
             }
-        )
+            completed = 0
+            for future in as_completed(future_to_report):
+                result = future.result()
+                report = result["report"]
+                completed += 1
+                if progress_callback:
+                    progress_callback(f"파싱 {completed}/{total_reports}: {report.get('corp_name', '')} {report.get('rcept_no', '')}")
+                if result["parse_failure"]:
+                    parse_failures.append(result["parse_failure"])
+                    if progress_callback:
+                        progress_callback(f"문서 파싱 실패 {report.get('rcept_no', '')}: {result['parse_failure']['error']}")
+                if result["family_lookup_failure"]:
+                    family_lookup_failures.append(result["family_lookup_failure"])
+                    if progress_callback:
+                        progress_callback(f"정정이전 조회 실패 {report.get('rcept_no', '')}: {result['family_lookup_failure']['error']}")
+                rows.append(result["export_row"])
+                audit_rows.append(result["audit_row"])
 
     summary = {
         "bgn_de": data.get("bgn_de"),
@@ -613,9 +642,19 @@ def build_export_rows_with_audit(data: dict, progress_callback=None) -> tuple:
     return rows, summary, audit_rows
 
 
-def export_reports(data: dict, output_path, audit_json_path=None, progress_callback=None) -> ExportResult:
+def export_reports(
+    data: dict,
+    output_path,
+    audit_json_path=None,
+    progress_callback=None,
+    parse_max_workers: int = DEFAULT_PARSE_WORKERS,
+) -> ExportResult:
     output_path = ensure_parent_dir(output_path)
-    rows, summary, audit_rows = build_export_rows_with_audit(data, progress_callback=progress_callback)
+    rows, summary, audit_rows = build_export_rows_with_audit(
+        data,
+        progress_callback=progress_callback,
+        parse_max_workers=parse_max_workers,
+    )
     workbook = Workbook()
     report_sheet = workbook.active
     report_sheet.title = "reports"

@@ -5,6 +5,9 @@ const state = {
   captureRunning: false,
   weeklyMezzOutput: "",
   weeklyMezzRunning: false,
+  weeklyMezzTocCombinations: [],
+  weeklyMezzTocExpanded: {},
+  weeklyMezzTocPages: {},
   pptTemplateDir: "",
   pptTemplatePath: "",
   pptExcelPath: "",
@@ -22,6 +25,7 @@ const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 const PPT_STEPS = ["source", "shareholders", "copy", "review"];
 const PROMPT_PANELS = ["investment", "price", "risk"];
+const WEEKLY_MEZZ_TOC_PAGE_SIZE = 5;
 
 const PAGE_INFO = {
   session: [],
@@ -122,6 +126,122 @@ function addLog(message) {
   item.append(time, body);
   logs.append(item);
   logs.scrollTop = logs.scrollHeight;
+}
+
+function renderWeeklyMezzTocCombinations() {
+  const container = $("#weeklyMezzTocCombinations");
+  if (!container) return;
+  container.innerHTML = "";
+  const combinations = state.weeklyMezzTocCombinations || [];
+  container.classList.toggle("empty", combinations.length === 0);
+  if (combinations.length === 0) {
+    container.textContent = "수집을 실행하면 목차 조합이 여기에 표시됩니다.";
+    return;
+  }
+
+  combinations.forEach((combination) => {
+    const item = document.createElement("article");
+    item.className = "toc-combination";
+    const expanded = Boolean(state.weeklyMezzTocExpanded[combination.id]);
+    item.classList.toggle("open", expanded);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "toc-combination-toggle";
+    button.setAttribute("aria-expanded", String(expanded));
+    button.addEventListener("click", () => {
+      state.weeklyMezzTocExpanded[combination.id] = !expanded;
+      if (state.weeklyMezzTocPages[combination.id] == null) state.weeklyMezzTocPages[combination.id] = 0;
+      renderWeeklyMezzTocCombinations();
+    });
+
+    const title = document.createElement("strong");
+    title.textContent = combination.title || "목차 없음";
+    const meta = document.createElement("span");
+    meta.textContent = `${combination.count || 0}개 파일`;
+    button.append(title, meta);
+    item.append(button);
+
+    if (expanded) {
+      item.append(createWeeklyMezzTocFiles(combination));
+    }
+    container.append(item);
+  });
+}
+
+function createWeeklyMezzTocFiles(combination) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "toc-file-panel";
+  const files = combination.files || [];
+  const totalPages = Math.max(1, Math.ceil(files.length / WEEKLY_MEZZ_TOC_PAGE_SIZE));
+  const currentPage = Math.min(state.weeklyMezzTocPages[combination.id] || 0, totalPages - 1);
+  state.weeklyMezzTocPages[combination.id] = currentPage;
+  const start = currentPage * WEEKLY_MEZZ_TOC_PAGE_SIZE;
+  const pageFiles = files.slice(start, start + WEEKLY_MEZZ_TOC_PAGE_SIZE);
+
+  const list = document.createElement("ul");
+  list.className = "toc-file-list";
+  pageFiles.forEach((file) => {
+    const row = document.createElement("li");
+    const info = document.createElement("div");
+    const name = document.createElement("strong");
+    name.textContent = `${file.corpName || "회사명 없음"} ${file.rceptNo ? `(${file.rceptNo})` : ""}`.trim();
+    const pathText = document.createElement("small");
+    pathText.textContent = file.fileName || file.path || "";
+    info.append(name, pathText);
+
+    const openButton = document.createElement("button");
+    openButton.type = "button";
+    openButton.className = "ui-button secondary compact-button";
+    openButton.textContent = "열기";
+    openButton.addEventListener("click", async () => {
+      try {
+        await window.maxawon.openFile(file.path);
+        addLog(`HTML 파일을 열었습니다: ${file.path}`);
+      } catch (error) {
+        addLog(error.message);
+        window.alert(error.message);
+      }
+    });
+    row.append(info, openButton);
+    list.append(row);
+  });
+  wrapper.append(list);
+
+  if (files.length > WEEKLY_MEZZ_TOC_PAGE_SIZE) {
+    const pager = document.createElement("div");
+    pager.className = "toc-file-pager";
+    const prev = document.createElement("button");
+    prev.type = "button";
+    prev.className = "ui-button secondary compact-button";
+    prev.textContent = "이전";
+    prev.disabled = currentPage === 0;
+    prev.addEventListener("click", () => {
+      state.weeklyMezzTocPages[combination.id] = Math.max(0, currentPage - 1);
+      renderWeeklyMezzTocCombinations();
+    });
+    const status = document.createElement("span");
+    status.textContent = `${currentPage + 1} / ${totalPages}`;
+    const next = document.createElement("button");
+    next.type = "button";
+    next.className = "ui-button secondary compact-button";
+    next.textContent = "다음";
+    next.disabled = currentPage >= totalPages - 1;
+    next.addEventListener("click", () => {
+      state.weeklyMezzTocPages[combination.id] = Math.min(totalPages - 1, currentPage + 1);
+      renderWeeklyMezzTocCombinations();
+    });
+    pager.append(prev, status, next);
+    wrapper.append(pager);
+  }
+  return wrapper;
+}
+
+function applyWeeklyMezzTocCombinations(combinations) {
+  state.weeklyMezzTocCombinations = combinations || [];
+  state.weeklyMezzTocExpanded = {};
+  state.weeklyMezzTocPages = {};
+  renderWeeklyMezzTocCombinations();
 }
 
 function setLogin(_message, done = false) {
@@ -755,9 +875,11 @@ async function runWeeklyMezz() {
       lastReportValue,
     });
     const summary = result.summary || {};
+    applyWeeklyMezzTocCombinations(result.tocCombinations || []);
     addLog("수집 결과를 엑셀 파일로 정리했습니다.");
     addLog(`주간 메자닌 발행현황 엑셀을 저장했습니다: ${result.outputPath}`);
     addLog(`검색 ${summary.total_count || 0}건, 필터 ${summary.filtered_count || 0}건, 저장 ${summary.exported_count || 0}건`);
+    addLog(`목차 조합 ${state.weeklyMezzTocCombinations.length}개를 정리했습니다.`);
     if (result.rawPath) addLog(`원본 JSON을 저장했습니다: ${result.rawPath}`);
   } catch (error) {
     addLog(error.message);

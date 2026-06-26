@@ -8,6 +8,7 @@ from pathlib import Path
 
 from maxawon.table_capture import CapturedTable, capture_current_maxawon_table_sync, write_table_csv
 from weekly_mezz.cli import collect_and_export, parse_yyyymmdd
+from weekly_mezz.toc import build_toc_combinations
 
 
 REQUIRED_MODULES = ["playwright", "bs4", "FinanceDataReader", "lxml", "openpyxl", "requests"]
@@ -45,20 +46,44 @@ def capture_table(args: argparse.Namespace) -> int:
 
 
 def weekly_mezz_collect(args: argparse.Namespace) -> int:
+    output_path = Path(args.output_path).expanduser()
     result = collect_and_export(
         parse_yyyymmdd(args.from_date),
         parse_yyyymmdd(args.to_date),
-        Path(args.output_path).expanduser(),
+        output_path,
         last_reprt_at=args.last_report_value or "ALL",
     )
+    manifest_path = output_path.resolve().parent / "kind_downloads" / "kind_manifest.json"
+    toc_combinations = []
+    if manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        toc_combinations = build_toc_combinations(manifest.get("list", []))
     print_json(
         {
             "outputPath": str(result.output_path),
             "rawPath": str(result.raw_path) if result.raw_path else "",
             "auditPath": str(result.audit_path) if result.audit_path else "",
             "summary": result.summary,
+            "tocCombinations": toc_combinations,
         }
     )
+    return 0
+
+
+def weekly_mezz_toc_combinations(args: argparse.Namespace) -> dict:
+    output_path = Path(args.output_path).expanduser()
+    manifest_path = output_path.resolve().parent / "kind_downloads" / "kind_manifest.json"
+    if not manifest_path.exists():
+        return {"manifestPath": str(manifest_path), "tocCombinations": []}
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    return {
+        "manifestPath": str(manifest_path),
+        "tocCombinations": build_toc_combinations(manifest.get("list", [])),
+    }
+
+
+def weekly_mezz_toc(args: argparse.Namespace) -> int:
+    print_json(weekly_mezz_toc_combinations(args))
     return 0
 
 
@@ -87,6 +112,10 @@ def build_parser() -> argparse.ArgumentParser:
     weekly_parser.add_argument("--output-path", required=True)
     weekly_parser.add_argument("--last-report-value", default="ALL")
     weekly_parser.set_defaults(func=weekly_mezz_collect)
+
+    toc_parser = subparsers.add_parser("weekly-mezz-toc")
+    toc_parser.add_argument("--output-path", required=True)
+    toc_parser.set_defaults(func=weekly_mezz_toc)
 
     logger_parser = subparsers.add_parser("network-logger")
     logger_parser.add_argument("--log-dir", required=True)
